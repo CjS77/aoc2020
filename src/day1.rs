@@ -6,6 +6,11 @@ pub fn day1a() -> String {
     find_expenses(2, &values)
 }
 
+pub fn day1b() -> String {
+    let values = read_data();
+    find_expenses(3, &values)
+}
+
 fn find_expenses(n: usize, values: &[usize]) -> String {
     match values
         .iter()
@@ -21,14 +26,9 @@ fn find_expenses(n: usize, values: &[usize]) -> String {
 
 fn read_data() -> Vec<usize> {
     let values = fs::read_to_string("assets/day1a.txt").expect("Could not load file");
-    let values = values
+    values
         .split("\n")
         .filter_map(|s| s.parse::<usize>().ok())
-        .collect::<Vec<usize>>();
-    values
+        .collect::<Vec<usize>>()
 }
 
-pub fn day1b() -> String {
-    let values = read_data();
-    find_expenses(3, &values)
-}
