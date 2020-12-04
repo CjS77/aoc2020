@@ -107,7 +107,7 @@ fn check_eyr(s: &str) -> bool {
 }
 
 fn check_hgt(s: &str) -> bool {
-    let re = Regex::new(r"(\d*)(in|cm)").unwrap();
+    let re = Regex::new(r"^(\d*)(in|cm)$").unwrap();
     match re.captures(s) {
         Some(cap) => {
             let val = cap[1].parse::<usize>().unwrap_or(0);
@@ -123,7 +123,7 @@ fn check_hgt(s: &str) -> bool {
 }
 
 fn check_hcl(s: &str) -> bool {
-    let re = Regex::new(r"#[0-9a-f]{6}").unwrap();
+    let re = Regex::new(r"^#[0-9a-f]{6}$").unwrap();
     re.is_match(s)
 }
 
@@ -135,10 +135,7 @@ fn check_ecl(s: &str) -> bool {
 }
 
 fn check_pid(s: &str) -> bool {
-    if s.len() != 9 {
-        return false;
-    }
-    let re = Regex::new(r"\d{9}").unwrap();
+    let re = Regex::new(r"^\d{9}$").unwrap();
     re.is_match(s)
 }
 
