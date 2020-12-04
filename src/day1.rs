@@ -1,5 +1,5 @@
+use itertools::Itertools;
 use std::fs;
-use itertools::{Itertools};
 
 pub fn day1a() -> String {
     let values = read_data();
@@ -20,7 +20,7 @@ fn find_expenses(n: usize, values: &[usize]) -> String {
         .map(|v| v.to_string())
     {
         Some(v) => v,
-        None => "No solution".to_string()
+        None => "No solution".to_string(),
     }
 }
 
@@ -31,4 +31,3 @@ fn read_data() -> Vec<usize> {
         .filter_map(|s| s.parse::<usize>().ok())
         .collect::<Vec<usize>>()
 }
-
