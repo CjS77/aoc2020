@@ -6,6 +6,7 @@ use aoc2020::day5::{day5a, day5b};
 use aoc2020::day6::{day6a, day6b};
 use aoc2020::day7::{day7a, day7b};
 use aoc2020::day8::{day8a, day8b};
+use aoc2020::day9::{day9a, day9b};
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -27,6 +28,8 @@ fn main() {
         "day7b" => day7b(),
         "day8a" => day8a(),
         "day8b" => day8b(),
+        "day9a" => day9a(),
+        "day9b" => day9b(),
         _ => "We haven't solved that yet".to_string(),
     };
     println!("{}", result);
