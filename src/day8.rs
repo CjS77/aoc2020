@@ -38,7 +38,10 @@ impl VM {
     }
 
     pub fn load_instructions(&mut self, stack: Vec<String>) {
-        self.stack = stack.iter().map(|s| Instruction::from_str(s.as_str())).collect();
+        self.stack = stack
+            .iter()
+            .map(|s| Instruction::from_str(s.as_str()))
+            .collect();
     }
 
     pub fn run(&mut self) -> Result<i32, i32> {
@@ -48,7 +51,10 @@ impl VM {
         loop {
             match self.get_next() {
                 Ok(Some(next)) => self.execute(next),
-                Ok(None) => { println!("Ok"); break; },
+                Ok(None) => {
+                    println!("Ok");
+                    break;
+                }
                 Err(_) => return Err(self.accumulator),
             }
         }
@@ -60,14 +66,18 @@ impl VM {
             let mut new_stack = self.stack.clone();
             match ins {
                 Instruction::Acc(_) => continue,
-                Instruction::Jmp(val) => { std::mem::replace(&mut new_stack[i], Instruction::Nop(*val)); },
-                Instruction::Nop(val) => { std::mem::replace(&mut new_stack[i], Instruction::Jmp(*val)); },
+                Instruction::Jmp(val) => {
+                    std::mem::replace(&mut new_stack[i], Instruction::Nop(*val));
+                }
+                Instruction::Nop(val) => {
+                    std::mem::replace(&mut new_stack[i], Instruction::Jmp(*val));
+                }
             }
             let mut vm = VM::new();
             vm.stack = new_stack;
             match vm.run() {
                 Ok(val) => return format!("Fixed - {}", val),
-                Err(_) => {},
+                Err(_) => {}
             }
         }
         "No solution".to_string()
@@ -117,7 +127,7 @@ pub fn day8b() -> String {
 fn read_data() -> Vec<String> {
     fs::read_to_string("assets/day8.txt")
         .expect("Could not read file")
-        .split("\n")
+        .split('\n')
         .filter(|&s| s.len() > 0)
         .map(|s| s.to_string())
         .collect::<Vec<String>>()

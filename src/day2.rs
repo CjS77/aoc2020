@@ -81,7 +81,7 @@ fn read_data() -> Vec<PasswordPolicy> {
     let values = fs::read_to_string("assets/passwords.txt").expect("Could not load file");
     let regex = Regex::new(REGEX).unwrap();
     values
-        .split("\n")
+        .split('\n')
         .filter_map(|s| PasswordPolicy::new(s, &regex))
         .collect()
 }

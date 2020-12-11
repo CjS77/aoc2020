@@ -3,7 +3,7 @@ use std::fs;
 fn read_data() -> Vec<String> {
     let values = fs::read_to_string("assets/day3.txt").expect("Could not load file");
     values
-        .split("\n")
+        .split('\n')
         .filter(|&s| s.len() > 0)
         .map(|s| s.to_string())
         .collect::<Vec<String>>()
