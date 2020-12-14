@@ -3,10 +3,10 @@ use std::fs;
 fn read_data() -> Vec<String> {
     let values = fs::read_to_string("assets/day3.txt").expect("Could not load file");
     values
-        .split("\n")
-        .filter(|&s| s.len() > 0)
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
+        .split('\n')
+        .filter(|&s| !s.is_empty())
+        .map(String::from)
+        .collect()
 }
 
 pub fn day3a() -> String {
@@ -17,12 +17,14 @@ pub fn day3a() -> String {
 
 pub fn day3b() -> String {
     let rows = read_data();
-    let trees = [track_path(&rows, 1, 1),
+    let trees = [
+        track_path(&rows, 1, 1),
         track_path(&rows, 3, 1),
         track_path(&rows, 5, 1),
         track_path(&rows, 7, 1),
         track_path(&rows, 1, 2),
-    ].iter().product::<usize>();
+    ]
+        .iter().product::<usize>();
     trees.to_string()
 }
 
