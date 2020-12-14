@@ -56,12 +56,12 @@ impl Passport {
             }
         }
         if result.byr.len() > 0
-            && result.iyr.len() > 0
-            && result.eyr.len() > 0
-            && result.hgt.len() > 0
-            && result.hcl.len() > 0
-            && result.ecl.len() > 0
-            && result.pid.len() > 0
+            && !result.iyr.is_empty()
+            && !result.eyr.is_empty()
+            && !result.hgt.is_empty()
+            && !result.hcl.is_empty()
+            && !result.ecl.is_empty()
+            && !result.pid.is_empty()
         {
             Some(result)
         } else {
@@ -86,10 +86,7 @@ impl Passport {
 }
 
 fn check_byr(s: &str) -> bool {
-    match s.parse::<usize>() {
-        Ok(v) => v >= 1920 && v <= 2002,
-        _ => false,
-    }
+    matches!(s.parse::<usize>(), Ok(v) if v >= 1920 && v <= 2002)
 }
 
 fn check_iyr(s: &str) -> bool {
