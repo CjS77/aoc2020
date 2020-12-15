@@ -27,8 +27,8 @@ pub fn is_set(v: usize, index: usize) -> bool {
 
 pub fn bit_array(v: usize) -> [bool; 64] {
     let mut result = [false; 64];
-    for i in 0..64 {
-        result[i] = is_set(v, i)
+    for (i, val) in result.iter_mut().enumerate() {
+        *val =is_set(v, i)
     }
     result
 }
