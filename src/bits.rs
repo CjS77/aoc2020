@@ -37,7 +37,6 @@ pub fn read_data(file: &str) -> Vec<String> {
     let values = fs::read_to_string(file).expect("Could not load file");
     values
         .split('\n')
-        .filter(|s| !s.is_empty())
         .map(String::from)
         .collect::<Vec<String>>()
 }
