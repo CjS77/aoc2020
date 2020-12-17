@@ -55,7 +55,7 @@ impl Passport {
                 }
             }
         }
-        if result.byr.len() > 0
+        if !result.byr.is_empty()
             && !result.iyr.is_empty()
             && !result.eyr.is_empty()
             && !result.hgt.is_empty()
@@ -125,10 +125,7 @@ fn check_hcl(s: &str) -> bool {
 }
 
 fn check_ecl(s: &str) -> bool {
-    match s {
-        "amb" | "blu" | "brn" | "gry" | "grn" | "hzl" | "oth" => true,
-        _ => false,
-    }
+    matches!(s, "amb" | "blu" | "brn" | "gry" | "grn" | "hzl" | "oth")
 }
 
 fn check_pid(s: &str) -> bool {
