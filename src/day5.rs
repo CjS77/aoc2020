@@ -2,9 +2,8 @@ use std::fs;
 
 pub fn day5a() -> String {
     let cards = read_data();
-    println!("{}", cards.len());
     cards.iter()
-        .map(|s| find_id(s.as_str()))
+        .map(|s| calc_id(s.as_str()))
         .max()
         .unwrap()
         .to_string()
@@ -15,7 +14,7 @@ pub fn day5b() -> String {
     let mut seats = [false; 128 * 8];
     cards.iter()
         .for_each(|s| {
-            let id = find_id(s);
+            let id = calc_id(s);
             seats[id] = true;
         });
     for i in 1..128*8-1 {
@@ -26,7 +25,7 @@ pub fn day5b() -> String {
     "No solution".to_string()
 }
 
-pub fn find_id(s: &str) -> usize {
+pub fn calc_id(s: &str) -> usize {
     let row = find_row(s);
     let seat = find_seat(s);
     row * 8 + seat
@@ -42,12 +41,11 @@ pub fn find_seat(s: &str) -> usize {
 
 pub fn find_index(len: usize, bottom: char, top: char, code: &str) -> usize {
     let (low, _high, _rem) = code.chars()
-        .fold((0usize, len-1usize, len), |state, c| {
-            let (mut low, mut high, mut rem) = state;
-            rem = rem / 2;
+        .fold((0usize, len-1usize, len), |(mut low, mut high, mut rem), c| {
+            rem /= 2;
             match c {
-                c if c == bottom => high = high - rem,
-                c if c == top => low = low + rem,
+                c if c == bottom => high -= rem,
+                c if c == top => low += rem,
                 _ => unreachable!()
             }
             (low, high, rem)
@@ -58,8 +56,8 @@ pub fn find_index(len: usize, bottom: char, top: char, code: &str) -> usize {
 fn read_data() -> Vec<String> {
     fs::read_to_string("assets/day5.txt")
         .expect("Could not read file")
-        .split("\n")
+        .split('\n')
         .filter(|&s| s.len() == 10)
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
+        .map(String::from)
+        .collect()
 }

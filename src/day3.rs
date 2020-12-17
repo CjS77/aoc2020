@@ -3,10 +3,10 @@ use std::fs;
 fn read_data() -> Vec<String> {
     let values = fs::read_to_string("assets/day3.txt").expect("Could not load file");
     values
-        .split("\n")
-        .filter(|&s| s.len() > 0)
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
+        .split('\n')
+        .filter(|&s| !s.is_empty())
+        .map(String::from)
+        .collect()
 }
 
 pub fn day3a() -> String {
@@ -24,21 +24,19 @@ pub fn day3b() -> String {
         track_path(&rows, 7, 1),
         track_path(&rows, 1, 2),
     ]
-    .iter()
-    .product::<usize>();
+        .iter().product::<usize>();
     trees.to_string()
 }
 
 fn track_path(rows: &[String], n_right: usize, n_down: usize) -> usize {
-    let (trees, _) =
-        rows.iter()
-            .skip(n_down)
-            .step_by(n_down)
-            .fold((0usize, 0usize), |(tot, pos), s| {
-                let (new_pos, is_tree) = move_right(s.as_str(), pos, n_right);
-                let new_tot = if is_tree { tot + 1 } else { tot };
-                (new_tot, new_pos)
-            });
+    let (trees, _) = rows.iter()
+        .skip(n_down)
+        .step_by(n_down)
+        .fold((0usize, 0usize), |(tot, pos), s| {
+            let (new_pos, is_tree) = move_right(s.as_str(), pos, n_right);
+            let new_tot = if is_tree { tot + 1 } else { tot };
+            (new_tot, new_pos)
+        });
     trees
 }
 
