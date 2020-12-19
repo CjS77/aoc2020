@@ -117,8 +117,8 @@ pub fn day8b() -> String {
 fn read_data() -> Vec<String> {
     fs::read_to_string("assets/day8.txt")
         .expect("Could not read file")
-        .split("\n")
-        .filter(|&s| s.len() > 0)
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
+        .split('\n')
+        .filter(|&s| !s.is_empty())
+        .map(String::from)
+        .collect()
 }
