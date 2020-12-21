@@ -1,17 +1,19 @@
 use crate::bits::read_data;
+use std::collections::HashMap;
 use itertools::Itertools;
 
 pub fn day20a() -> String {
     let tiles = read_tiles();
     let n = (tiles.len() as f64).sqrt();
     println!("{} tiles ({} x {})", tiles.len(), n, n);
-    // check(&tiles);
     let corners = find_corners(&tiles);
-    println!("{:?}", corners);
+    println!("Corners: {:?}", corners);
     format!("{}", corners.iter().product::<usize>())
 }
 
 pub fn day20b() -> String {
+    let tiles = read_tiles();
+    let image = Image::build_image(tiles);
     format!("")
 }
 
@@ -25,6 +27,12 @@ fn read_tiles() -> Vec<Tile> {
             Tile::new(id, &t[1..11])
         }).collect()
 }
+
+const MONSTER: [&str; 3] = [
+    "                  # ",
+    "#    ##    ##    ###",
+    " #  #  #  #  #  #   "
+];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Tile {
@@ -99,19 +107,29 @@ impl Tile {
         this == that
     }
 
-    pub fn find_matching_edge(&self, this_edge: usize, other: &Tile) -> Vec<Orientation> {
+    pub fn find_matching_edge(&self, this_edge: usize, other: &Tile) -> Vec<EdgeMatch> {
         // println!("\nLooking for edge matches on {}.{} against {}", self.id, this_edge, other.id);
         let mut res = Vec::new();
-        let mut this = *self;
         for that_edge in 0..4 {
             for flip in &[false, true] {
-                if this.match_edge(this_edge, *flip, other, that_edge) {
-                    res.push(Orientation { flip_x: *flip, edge: this_edge });
-                    println!("{}.{} ({}) matches {}.{}", this.id, this_edge, flip, other.id, that_edge);
+                if self.match_edge(this_edge, *flip, other, that_edge) {
+                    res.push(EdgeMatch { flip: *flip, edge: this_edge, that_id: other.id, that_edge });
+                    // println!("{}.{} ({}) matches {}.{}", this.id, this_edge, flip, other.id, that_edge);
                 }
             }
         }
         res
+    }
+
+    pub fn get_all_matches(&self, others: &[Tile]) -> Vec<EdgeMatch> {
+        (0..4).map(|edge| {
+                others.iter().filter(|&t| t != self)
+                    .map(|t| self.find_matching_edge(edge, t))
+                    .flatten()
+                    .collect::<Vec<EdgeMatch>>()
+            })
+            .flatten()
+            .collect()
     }
 
     pub fn is_corner(&self, others: &[Tile]) -> bool {
@@ -123,15 +141,57 @@ impl Tile {
                     self.find_matching_edge(*i, t).is_empty()
                 })
         }).collect();
-        println!("{} had these edges with no matches: {:?}", self.id, no_matches);
+        // println!("{} had these edges with no matches: {:?}", self.id, no_matches);
         no_matches.len() == 2
     }
 }
 
 #[derive(Clone, Copy, Default, Debug)]
-pub struct Orientation {
-    flip_x: bool,
+pub struct EdgeMatch {
+    flip: bool,
     edge: usize,
+    that_id: usize,
+    that_edge: usize,
+}
+
+
+pub struct Image {
+    data: Vec<char>
+}
+
+impl Image {
+    pub fn new(n: usize) -> Self {
+        let size = n * 100;
+        Self { data: vec!['@'; size] }
+    }
+
+    fn build_image(tiles: Vec<Tile>) -> Image {
+        let mut image = Image::new(tiles.len());
+        let corners = find_corners(&tiles);
+        println!("Corners: {:?}", corners);
+
+        assert_eq!(corners.len(), 4);
+        let mut match_db = HashMap::<usize, Vec<EdgeMatch>>::new();
+        tiles.iter()
+            .for_each(|t| {
+                let matches = t.get_all_matches(&tiles);
+                match_db.insert(t.id, matches);
+            });
+
+        // Find the top left corner -- this can be any corner tile, the image will just be
+        // rotated / flipped
+
+        let (corner, m) = match_db.iter().find(|(&id, &m)| m.len() == 2).unwrap();
+        // How much to rotate?
+        let index = m.iter().map(|m| m.edge).min().unwrap();
+        let corner = remove_tile(&corner)
+        image
+    }
+}
+
+fn remove_tile(tile: &Tile, tiles: &mut Vec<Tile>) {
+    let index = tiles.iter().enumerate().find(|(_, &t)| t.id == tile.id).map(|(i, _)| i).unwrap();
+    tiles.remove(index);
 }
 
 #[inline(always)]
@@ -154,10 +214,3 @@ fn find_corners(tiles: &[Tile]) -> Vec<usize> {
     res
 }
 
-fn check(tiles: &[Tile]) {
-    let c = tiles.iter().find(|t| t.id == 1171).unwrap();
-    let a = tiles.iter().find(|t| t.id == 1489).unwrap();
-    let cf = c.flip_x();
-    let m = c.find_matching_edge(1, a);
-    println!("Matches: {:?}", m);
-}
