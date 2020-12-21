@@ -13,7 +13,7 @@ pub fn day20a() -> String {
 
 pub fn day20b() -> String {
     let tiles = read_tiles();
-    let image = Image::build_image(tiles);
+    // let image = Image::build_image(tiles);
     format!("")
 }
 
@@ -159,35 +159,35 @@ pub struct Image {
     data: Vec<char>
 }
 
-impl Image {
-    pub fn new(n: usize) -> Self {
-        let size = n * 100;
-        Self { data: vec!['@'; size] }
-    }
-
-    fn build_image(tiles: Vec<Tile>) -> Image {
-        let mut image = Image::new(tiles.len());
-        let corners = find_corners(&tiles);
-        println!("Corners: {:?}", corners);
-
-        assert_eq!(corners.len(), 4);
-        let mut match_db = HashMap::<usize, Vec<EdgeMatch>>::new();
-        tiles.iter()
-            .for_each(|t| {
-                let matches = t.get_all_matches(&tiles);
-                match_db.insert(t.id, matches);
-            });
-
-        // Find the top left corner -- this can be any corner tile, the image will just be
-        // rotated / flipped
-
-        let (corner, m) = match_db.iter().find(|(&id, &m)| m.len() == 2).unwrap();
-        // How much to rotate?
-        let index = m.iter().map(|m| m.edge).min().unwrap();
-        let corner = remove_tile(&corner)
-        image
-    }
-}
+// impl Image {
+//     pub fn new(n: usize) -> Self {
+//         let size = n * 100;
+//         Self { data: vec!['@'; size] }
+//     }
+//
+//     fn build_image(tiles: Vec<Tile>) -> Image {
+//         let mut image = Image::new(tiles.len());
+//         let corners = find_corners(&tiles);
+//         println!("Corners: {:?}", corners);
+//
+//         assert_eq!(corners.len(), 4);
+//         let mut match_db = HashMap::<usize, Vec<EdgeMatch>>::new();
+//         tiles.iter()
+//             .for_each(|t| {
+//                 let matches = t.get_all_matches(&tiles);
+//                 match_db.insert(t.id, matches);
+//             });
+//
+//         // Find the top left corner -- this can be any corner tile, the image will just be
+//         // rotated / flipped
+//
+//         let (corner, m) = match_db.iter().find(|(&id, &m)| m.len() == 2).unwrap();
+//         // How much to rotate?
+//         let index = m.iter().map(|m| m.edge).min().unwrap();
+//         let corner = remove_tile(&corner)
+//         image
+//     }
+// }
 
 fn remove_tile(tile: &Tile, tiles: &mut Vec<Tile>) {
     let index = tiles.iter().enumerate().find(|(_, &t)| t.id == tile.id).map(|(i, _)| i).unwrap();
