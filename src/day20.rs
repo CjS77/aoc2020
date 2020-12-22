@@ -13,6 +13,10 @@ pub fn day20a() -> String {
     println!("{} tiles ({} x {})", tiles.len(), n, n);
     let corners = find_corners(&tiles);
     println!("Corners: {:?}", corners);
+    tiles.iter().filter(|&t| corners.contains(&t.id))
+        .for_each(|t| {
+            println!("{:?}", t.unique_edges(&tiles))
+        });
     format!("{}", corners.iter().product::<usize>())
 }
 
@@ -59,6 +63,7 @@ impl fmt::Display for Tile {
         Ok(())
     }
 }
+
 impl Tile {
     pub fn new(id: usize, s: &[String]) -> Tile {
         let mut data = ['.'; 100];
@@ -183,19 +188,18 @@ impl Tile {
             .collect()
     }
 
-    pub fn count_unique_edges(&self, others: &[Tile]) -> usize {
+    pub fn unique_edges(&self, others: &[Tile]) -> Vec<usize> {
         (0..4).filter(|i| {
             others.iter()
                 .filter(|&t| t != self)
                 .all(|t| {
-                    // println!("{}.{} vs {}", self.id, *i, t.id);
                     self.find_matching_edge(*i, t).is_empty()
                 })
-        }).count()
+        }).collect::<Vec<usize>>()
     }
 
     pub fn is_corner(&self, others: &[Tile]) -> bool {
-        self.count_unique_edges(others) == 2
+        self.unique_edges(others).len() == 2
     }
 }
 
@@ -219,7 +223,6 @@ pub struct Placement {
 #[derive(PartialEq, Eq, Clone)]
 pub struct Image {
     size: usize,
-    corners: HashSet<Tile>,
     edges: HashSet<Tile>,
     insides: HashSet<Tile>,
     arrangement: Vec<Option<Tile>>,
@@ -228,20 +231,17 @@ pub struct Image {
 impl Image {
     pub fn new(tiles: Vec<Tile>) -> Self {
         let n = (tiles.len() as f64).sqrt() as usize;
-        let mut corners = HashSet::new();
         let mut edges = HashSet::new();
         let mut insides = HashSet::new();
         for tile in &tiles {
-            match tile.count_unique_edges(&tiles) {
-                2 => { corners.insert(tile.clone()); },
-                1 => { edges.insert(tile.clone()); },
-                0 => { insides.insert(tile.clone()); },
+            match tile.unique_edges(&tiles).len() {
+                1 | 2 => { edges.insert(tile.clone()); }
+                0 => { insides.insert(tile.clone()); }
                 _ => unreachable!()
             }
         }
         Self {
             size: n,
-            corners,
             edges,
             insides,
             arrangement: vec![None; n * n],
@@ -272,13 +272,12 @@ impl Image {
             return None;
         }
         let mut bag = match self.location(pos) {
-            0 => &mut self.corners,
-            1 => &mut self.edges,
+            0 | 1 => &mut self.edges,
             2 => &mut self.insides,
             _ => unreachable!()
         };
         let mut tile = bag.take(tile)?;
-        if rot != 0 { tile = tile.rotate(rot); }
+        tile = tile.rotate(rot);
         if flip {
             tile = tile.flip_x();
         }
@@ -298,7 +297,7 @@ impl Image {
         (x, y)
     }
 
-    fn is_empty_in_dir(&self, i: usize, dir: usize) -> Option<usize> {
+    fn neighbour_pos(&self, i: usize, dir: usize) -> Option<usize> {
         let i = i as isize;
         let ni = match dir {
             0 => i - self.size as isize,
@@ -310,11 +309,62 @@ impl Image {
         if ni < 0 || ni >= self.arrangement.len() as isize {
             return None;
         }
-        let ni = ni as usize;
+        Some(ni as usize)
+    }
+
+    fn is_empty_in_dir(&self, i: usize, dir: usize) -> Option<usize> {
+        let ni = self.neighbour_pos(i, dir)?;
         match self.arrangement[ni] {
             None => Some(ni),
             Some(_) => None,
         }
+    }
+
+    fn get_moves(&self, edge: bool) -> Box<dyn Iterator<Item=Placement>> {
+        let bag = if edge { &self.edges } else { &self.insides };
+        let mut moves: Vec<Placement> = Vec::new();
+        // For each occupied tile in edge / insides...
+        self.arrangement.iter()
+            .enumerate()
+            .filter(|(i, _t)| {
+                let is_edge = self.location(*i) != 2;
+                !(is_edge ^ edge)
+            })
+            .filter(|(_i, t)| t.is_some())
+            .for_each(|(i, t)| {
+                let t = t.as_ref().unwrap();
+                // ... look for matches along each edge
+                for edge in 0usize..4 {
+                    if let Some(new_i) = self.is_empty_in_dir(i, edge) {
+                        let mut matches = t.find_matches_on_edge(edge, bag);
+                        matches.iter_mut().for_each(|p| p.pos = new_i);
+                        moves.append(&mut matches);
+                    }
+                }
+            });
+        Box::new(moves.into_iter())
+    }
+
+    pub fn check_placement(&self) -> Option<()> {
+        // Loop through every placed tile and check the edges
+        let placed_tiles = self.arrangement.iter()
+            .enumerate()
+            .filter(| (_, t)| t.is_some())
+            .map(|(i, t)| (i, t.as_ref().unwrap()));
+        for (pos, tile) in  placed_tiles {
+            for edge in 0..4 {
+                if self.is_empty_in_dir(pos, edge).is_none() {
+                    if let Some(neighbour_pos) = self.neighbour_pos(pos, edge) {
+                        let other = self.arrangement[neighbour_pos].as_ref().unwrap();
+                        let that_edge = (edge + 2) % 4;
+                        if !tile.match_edge(edge, false, other, that_edge) {
+                            return None;
+                        }
+                    }
+                }
+            }
+        }
+        Some(())
     }
 }
 
@@ -327,11 +377,11 @@ impl fmt::Display for Image {
                 let j = row_num % 10;
                 match self.arrangement[block_i] {
                     None => ".".repeat(10),
-                    Some(t) => (&t.data[j*10..j*10+10]).iter().cloned().collect(),
+                    Some(t) => (&t.data[j * 10..j * 10 + 10]).iter().cloned().collect(),
                 }
             }).join(" ");
             writeln!(f, "{}", row)?;
-            if (row_num+1) % 10 == 0 {
+            if (row_num + 1) % 10 == 0 {
                 writeln!(f, "")?;
             }
         }
@@ -347,40 +397,18 @@ impl State for Image {
     }
 
     fn get_moves<I>(&self) -> Box<dyn Iterator<Item=Placement>> where I: Iterator<Item=Placement> {
-        let mut moves = Vec::new();
-        if !self.edges.is_empty() || !self.corners.is_empty() {
-            return self.get_edge_moves()
-        }
-        self.arrangement.iter()
-            .enumerate()
-            .filter(|(_i, t)| t.is_some())
-            .for_each(|(i, t)| {
-                let t = t.as_ref().unwrap();
-                for edge in 0usize..=3 {
-                    if let Some(new_i) = self.is_empty_in_dir(i, edge) {
-                        let mut matches = t.find_matches_on_edge(edge, &self.insides);
-                        matches.iter_mut().for_each(|p| p.pos = new_i);
-                        moves.append(&mut matches);
-                    }
-                }
-            });
-        // println!("{} possible moves", moves.len());
+        let moves = self.get_moves(!self.edges.is_empty());
         Box::new(moves.into_iter())
     }
 
-    fn get_edge_moves<I>(&self) -> Box<dyn Iterator<Item=Placement>> where I: Iterator<Item=Placement> {
-        let n = self.size;
-        for pos in (0..n*n).filter(|p| self.location(*p) !=2) {
-
-        }
-    }
-
     fn apply(&self, p: &Placement) -> Option<Self> {
-        let tile = self.tiles_left.iter().find(|t| t.id == p.id)?;
+        let tile = self.edges.iter().find(|t| t.id == p.id)
+            .or_else(|| self.insides.iter().find(|t| t.id == p.id))?;
         let mut next_state = self.clone();
         println!("{} tiles placed", self.arrangement.iter().filter(|t| t.is_some()).count());
         println!("{}", self);
-        next_state.place_tile(tile, p.flip, p.rot, p.pos).map(|_| next_state)
+        next_state.place_tile(tile, p.flip, p.rot, p.pos)?;
+        next_state.check_placement().map(|_| next_state)
     }
 }
 
