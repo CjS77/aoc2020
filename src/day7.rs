@@ -6,21 +6,14 @@ pub fn day7a() -> String {
     let bags = read_data();
     let mybag = "shiny gold";
     bags.values()
-        .fold(0usize, |tot, b| {
-            println!("{:?}", b);
-            if b.can_ultimately_hold(mybag, &bags) {
-                tot + 1
-            } else {
-                tot
-            }
-        })
+        .filter(|b| b.can_ultimately_hold(mybag, &bags))
+        .count()
         .to_string()
 }
 
 pub fn day7b() -> String {
     let bags = read_data();
     let mybag = "shiny gold";
-    // let mybag = "dark olive";
     count_bags(bags.get(mybag).unwrap(), &bags).to_string()
 }
 
@@ -30,16 +23,16 @@ fn count_bags(bag: &Bag, set: &HashMap<String, Bag>) -> usize {
         return 0;
     }
     println!(
-        "Checking {} inner bags: {:?}",
-        bag.contains.len(),
+        "[{}] has {} inner bags: {:?}",
+       bag.color, bag.contains.len(),
         &bag.contains
     );
     let n = bag.contains.iter().fold(0usize, |tot, (n, b)| {
         let inner_count = count_bags(set.get(b.as_str()).unwrap(), set);
-        println!("Counting for {} '{}' inner bags = {}", n, b, inner_count);
+
         tot + n * (1 + inner_count)
     });
-    println!("{} contains {}", bag.color, n);
+    println!("{} contains {}\n", bag.color, n);
     n
 }
 
@@ -66,39 +59,55 @@ impl Bag {
             return false;
         }
         self.contains.iter().any(|(_, b)| {
-            b.as_str() == color || set.get(b.as_str()).unwrap().can_ultimately_hold(color, set)
+            b.as_str() == color ||
+                    set.get(b.as_str())
+                        .unwrap()
+                        .can_ultimately_hold(color, set)
         })
     }
 }
 
 fn read_data() -> HashMap<String, Bag> {
-    let re = Regex::new(r"^(.*) bags contain (.*)\.$").unwrap();
+    let factory = BagFactory::default();
     let mut set = HashMap::new();
     fs::read_to_string("assets/day7.txt")
         .expect("Could not read file")
         .split('\n')
-        .filter_map(|s| to_bag(s, &re))
+        .filter_map(|s| factory.from_str(s))
         .for_each(|b| {
             set.insert(b.color.clone(), b);
         });
     set
 }
 
-fn to_bag(s: &str, re: &Regex) -> Option<Bag> {
-    let re2 = Regex::new(r"^\s*(\d*) (.*) bags?$").unwrap();
-    let caps = re.captures(s)?;
-    let color = caps.get(1).unwrap().as_str();
-    let mut bag = Bag::new(color);
-    let contains = caps.get(2).unwrap().as_str();
-    if contains == "no other bags" {
-        return Some(bag);
+struct BagFactory {
+    re: Regex,
+    re2: Regex,
+}
+
+impl Default for BagFactory {
+    fn default() -> Self {
+        let re = Regex::new(r"^(.*) bags contain (.*)\.$").unwrap();
+        let re2 = Regex::new(r"^\s*(\d*) (.*) bags?$").unwrap();
+        Self { re, re2 }
     }
-    contains.split(",").for_each(|s| {
-        let cap = re2.captures(s).unwrap();
-        let n = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
-        let color = cap.get(2).unwrap().as_str();
+}
+
+impl BagFactory {
+    pub fn from_str<T: AsRef<str>>(&self, s: T) -> Option<Bag> {
+        let caps = self.re.captures(s.as_ref())?;
+        let color = caps.get(1)?.as_str();
+        let mut bag = Bag::new(color);
+        let contains = caps.get(2)?.as_str();
+        if contains == "no other bags" {
+            return Some(bag);
+        }
+        for s in contains.split(',') {
+        let cap = self.re2.captures(s)?;
+        let n = cap.get(1)?.as_str().parse::<usize>().unwrap();
+        let color = cap.get(2)?.as_str();
         bag.can_contain(n, color)
-    });
-    println!("{:?}", bag);
-    Some(bag)
+    }
+        Some(bag)
+    }
 }
