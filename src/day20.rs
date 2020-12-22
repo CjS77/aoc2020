@@ -22,7 +22,8 @@ pub fn day20b() -> String {
     println!("Corner:\n{}", corner);
     let mut image = Image::new(tiles);
     image.place_tile(&corner, true, 1, 0);
-    let image = depth_first_iterator(image).unwrap();
+     // let image = depth_first_iterator(image).unwrap();
+    println!("{}", image);
     format!("")
 }
 
