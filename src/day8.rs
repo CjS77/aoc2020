@@ -1,5 +1,22 @@
 use std::fs;
 
+pub fn day8a() -> String {
+    let stack = read_data();
+    let mut vm = VM::new();
+    vm.load_instructions(stack);
+    match vm.run() {
+        Ok(v) => format!("Ok - {}", v),
+        Err(v) => format!("Infinite loop - {}", v),
+    }
+}
+
+pub fn day8b() -> String {
+    let stack = read_data();
+    let mut vm = VM::new();
+    vm.load_instructions(stack);
+    vm.self_fix()
+}
+
 #[derive(Clone)]
 enum Instruction {
     Acc(i32),
@@ -38,7 +55,9 @@ impl VM {
     }
 
     pub fn load_instructions(&mut self, stack: Vec<String>) {
-        self.stack = stack.iter().map(|s| Instruction::from_str(s.as_str())).collect();
+        self.stack = stack.iter()
+            .map(|s| Instruction::from_str(s.as_str()))
+            .collect();
     }
 
     pub fn run(&mut self) -> Result<i32, i32> {
@@ -60,14 +79,13 @@ impl VM {
             let mut new_stack = self.stack.clone();
             match ins {
                 Instruction::Acc(_) => continue,
-                Instruction::Jmp(val) => { std::mem::replace(&mut new_stack[i], Instruction::Nop(*val)); },
-                Instruction::Nop(val) => { std::mem::replace(&mut new_stack[i], Instruction::Jmp(*val)); },
+                Instruction::Jmp(val) => { new_stack[i] = Instruction::Nop(*val); },
+                Instruction::Nop(val) => { new_stack[i] = Instruction::Jmp(*val); },
             }
             let mut vm = VM::new();
             vm.stack = new_stack;
-            match vm.run() {
-                Ok(val) => return format!("Fixed - {}", val),
-                Err(_) => {},
+            if let Ok(val) = vm.run() {
+                return format!("Fixed - {}", val);
             }
         }
         "No solution".to_string()
@@ -97,28 +115,11 @@ impl VM {
     }
 }
 
-pub fn day8a() -> String {
-    let stack = read_data();
-    let mut vm = VM::new();
-    vm.load_instructions(stack);
-    match vm.run() {
-        Ok(v) => format!("Ok - {}", v),
-        Err(v) => format!("Infinite loop - {}", v),
-    }
-}
-
-pub fn day8b() -> String {
-    let stack = read_data();
-    let mut vm = VM::new();
-    vm.load_instructions(stack);
-    vm.self_fix()
-}
-
 fn read_data() -> Vec<String> {
     fs::read_to_string("assets/day8.txt")
         .expect("Could not read file")
-        .split("\n")
-        .filter(|&s| s.len() > 0)
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>()
+        .lines()
+        .filter(|&s| !s.is_empty())
+        .map(String::from)
+        .collect()
 }
