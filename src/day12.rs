@@ -19,7 +19,7 @@ pub fn day12b() -> String {
 fn read_data() -> Vec<Instruction> {
     let values = fs::read_to_string("assets/day12.txt").expect("Could not load file");
     values
-        .split('\n')
+        .lines()
         .filter(|s| !s.is_empty())
         .map(Instruction::from_str)
         .collect()
