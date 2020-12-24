@@ -31,20 +31,17 @@ pub fn day9b() -> String {
 }
 
 fn check_xmas(data: &[usize], preamble: usize) -> Option<usize> {
-    for i in 0..data.len()-preamble {
-        let window = &data[i..i+preamble];
-        let target = data[preamble + i];
-        if !window.iter().combinations(2).any(|v| v.iter().copied().sum::<usize>() == target) {
-            return Some(target)
-        }
-    }
-    None
+    data.windows(preamble + 1).find(|&window| {
+        let target = window[preamble];
+        let win = &window[0..preamble];
+        !win.iter().combinations(2).any(|v| v.iter().copied().sum::<usize>() == target)
+    }).map(|w| w[preamble])
 }
 
 fn read_data() -> Vec<usize> {
     let values = fs::read_to_string("assets/day9.txt").expect("Could not load file");
     values
-        .split("\n")
+        .lines()
         .filter_map(|s| s.parse::<usize>().ok())
         .collect::<Vec<usize>>()
 }
