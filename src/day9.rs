@@ -16,14 +16,14 @@ pub fn day9b() -> String {
         for i in 0..n {
             let mut tot = 0usize;
             let mut offset = 1;
-            while tot < val && i + offset < n {
+            while tot < val && i+offset < n {
                 tot += data[i + offset];
                 offset += 1;
             }
             if tot == val {
-                let min = data[i..i + offset].iter().copied().min().unwrap();
-                let max = data[i..i + offset].iter().copied().max().unwrap();
-                return (min + max).to_string();
+                let min = data[i..i+offset].iter().copied().min().unwrap();
+                let max = data[i..i+offset].iter().copied().max().unwrap();
+                return (min + max).to_string()
             }
         }
     }
@@ -31,24 +31,17 @@ pub fn day9b() -> String {
 }
 
 fn check_xmas(data: &[usize], preamble: usize) -> Option<usize> {
-    for i in 0..data.len() - preamble {
-        let window = &data[i..i + preamble];
-        let target = data[preamble + i];
-        if !window
-            .iter()
-            .combinations(2)
-            .any(|v| v.iter().copied().sum::<usize>() == target)
-        {
-            return Some(target);
-        }
-    }
-    None
+    data.windows(preamble + 1).find(|&window| {
+        let target = window[preamble];
+        let win = &window[0..preamble];
+        !win.iter().combinations(2).any(|v| v.iter().copied().sum::<usize>() == target)
+    }).map(|w| w[preamble])
 }
 
 fn read_data() -> Vec<usize> {
     let values = fs::read_to_string("assets/day9.txt").expect("Could not load file");
     values
-        .split('\n')
+        .lines()
         .filter_map(|s| s.parse::<usize>().ok())
         .collect::<Vec<usize>>()
 }

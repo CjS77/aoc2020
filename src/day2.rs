@@ -1,31 +1,25 @@
-use regex::Regex;
 use std::fs;
+use regex::Regex;
 
 pub fn day2a() -> String {
     let policies = read_data();
-    let total_valid = policies.iter().fold(0usize, |total, p| {
-        if p.is_valid_at_sled() {
-            total + 1
-        } else {
-            total
-        }
-    });
+    let total_valid = policies
+        .iter()
+        .filter(|&p| p.is_valid_at_sled())
+        .count();
     total_valid.to_string()
 }
 
 pub fn day2b() -> String {
     let policies = read_data();
-    let total_valid = policies.iter().fold(0usize, |total, p| {
-        if p.is_valid_at_tobbogan() {
-            total + 1
-        } else {
-            total
-        }
-    });
+    let total_valid = policies
+        .iter()
+        .filter(|&p| p.is_valid_at_tobbogan())
+        .count();
     total_valid.to_string()
 }
 
-const REGEX: &str = r"(\d+)-(\d+) (.): (.*)";
+const REGEX: &str = r"^(\d+)-(\d+) (.): (.*)$";
 
 #[derive(Debug)]
 pub struct PasswordPolicy {
@@ -38,20 +32,11 @@ pub struct PasswordPolicy {
 impl PasswordPolicy {
     pub fn new(s: &str, re: &Regex) -> Option<Self> {
         let matches = re.captures(s)?;
-        let min = matches
-            .get(1)
-            .and_then(|s| s.as_str().parse::<usize>().ok())?;
-        let max = matches
-            .get(2)
-            .and_then(|s| s.as_str().parse::<usize>().ok())?;
+        let min = matches.get(1).and_then(|s| s.as_str().parse::<usize>().ok())?;
+        let max = matches.get(2).and_then(|s| s.as_str().parse::<usize>().ok())?;
         let letter = matches.get(3)?.as_str().to_string();
         let password = matches.get(4)?.as_str().to_string();
-        Some(Self {
-            min,
-            max,
-            letter,
-            password,
-        })
+        Some(Self { min, max, letter, password })
     }
 
     pub fn is_valid_at_sled(&self) -> bool {
@@ -61,19 +46,12 @@ impl PasswordPolicy {
     }
 
     pub fn is_valid_at_tobbogan(&self) -> bool {
-        if self.password.len() < self.min.max(self.max) {
-            return false;
-        }
-        let chars = self
-            .password
-            .chars()
-            .map(|c| c.to_string())
-            .collect::<Vec<String>>();
-        let first = &chars[self.min - 1];
-        let second = &chars[self.max - 1];
-        let letter = self.letter.as_str();
-        println!("{} {} {}", self.password, first, second);
-        (first == letter && second != letter) || (first != letter && second == letter)
+        if self.password.len() < self.min.max(self.max) { return false; }
+        let letter = self.letter.as_bytes()[0] as char;
+        let chars = self.password.chars().collect::<Vec<char>>();
+        let first = chars[self.min - 1] == letter;
+        let second = chars[self.max - 1] == letter;
+        first ^ second
     }
 }
 
