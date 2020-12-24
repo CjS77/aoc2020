@@ -1,8 +1,11 @@
 use crate::bits::read_data;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 use std::panic::resume_unwind;
 use strum::IntoEnumIterator;
 use strum::EnumIter;
+use fnv::FnvHashSet;
+
+type MyHashSet = FnvHashSet<Position>;
 
 pub fn day24a() -> String {
     let data = get_moves("assets/day24.txt");
@@ -16,12 +19,15 @@ pub fn day24b() -> String {
     let data = get_moves("assets/day24.txt");
     let day0 = process_moves(data);
     let day100 = (0..100).fold(day0, |floor_plan, i| {
-        println!("Day {} - {}", i, floor_plan.len());
+        // println!("Day {} - {}", i, floor_plan.len());
         flip_tiles(&floor_plan)
     });
     format!("{}", day100.len())
 }
 
+fn new_hashset() -> MyHashSet {
+    FnvHashSet::default()
+}
 fn get_moves(f: &str) -> Vec<Vec<Move>> {
     read_data(f).iter().filter(|&s| !s.is_empty())
         .map(|s| {
@@ -49,8 +55,8 @@ fn process_move(moves: &[Move]) -> Position {
         })
 }
 
-fn process_moves(moves: Vec<Vec<Move>>) -> HashSet<Position> {
-    let mut result = HashSet::new();
+fn process_moves(moves: Vec<Vec<Move>>) -> MyHashSet {
+    let mut result = new_hashset();
     for mov in moves.iter() {
         let pos = process_move(mov);
         if !result.remove(&pos) {
@@ -60,8 +66,8 @@ fn process_moves(moves: Vec<Vec<Move>>) -> HashSet<Position> {
     result
 }
 
-fn flip_tiles(floor_plan: &HashSet<Position>) -> HashSet<Position> {
-    let mut result = HashSet::new();
+fn flip_tiles(floor_plan: &MyHashSet) -> MyHashSet {
+    let mut result = new_hashset();
     let (min_x, max_x, min_y, max_y) = floor_plan.iter()
         .fold((0,0,0,0), |bounds, pos| {
             // println!("{:?}", pos);
@@ -129,7 +135,7 @@ impl Position {
         }
     }
 
-    pub fn count_neighbours(&self, bag: &HashSet<Position>) -> usize {
+    pub fn count_neighbours(&self, bag: &MyHashSet) -> usize {
         Move::iter().filter(|m| {
             let neighbour = self.offset(m);
             // println!("{:?} => {:?} - {}", self, neighbour, bag.contains(&neighbour));
