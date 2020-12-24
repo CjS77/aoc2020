@@ -34,10 +34,7 @@ impl Place {
     }
 
     pub fn is_occupied(&self) -> bool {
-        match self {
-            Place::Chair(true) => true,
-            _ => false,
-        }
+        matches!(self, Place::Chair(true))
     }
 }
 
@@ -78,37 +75,13 @@ impl Layout {
 
     pub fn count_adjacent(&self, row: usize, col: usize) -> usize {
         let mut result = 0;
-        result += if row > 0 && self.is_occupied(row - 1, col) {
-            1
-        } else {
-            0
-        };
-        result += if row > 0 && col > 0 && self.is_occupied(row - 1, col - 1) {
-            1
-        } else {
-            0
-        };
-        result += if row > 0 && self.is_occupied(row - 1, col + 1) {
-            1
-        } else {
-            0
-        };
+        result += if row > 0 && self.is_occupied(row - 1, col) { 1 } else { 0 };
+        result += if row > 0 && col > 0 && self.is_occupied(row - 1, col - 1) { 1 } else { 0 };
+        result += if row > 0 && self.is_occupied(row - 1, col + 1) { 1 } else { 0 };
         result += if self.is_occupied(row + 1, col) { 1 } else { 0 };
-        result += if self.is_occupied(row + 1, col + 1) {
-            1
-        } else {
-            0
-        };
-        result += if col > 0 && self.is_occupied(row, col - 1) {
-            1
-        } else {
-            0
-        };
-        result += if col > 0 && self.is_occupied(row + 1, col - 1) {
-            1
-        } else {
-            0
-        };
+        result += if self.is_occupied(row + 1, col + 1) { 1 } else { 0 };
+        result += if col > 0 && self.is_occupied(row, col - 1) { 1 } else { 0 };
+        result += if col > 0 && self.is_occupied(row + 1, col - 1) { 1 } else { 0 };
         result += if self.is_occupied(row, col + 1) { 1 } else { 0 };
         result
     }
@@ -134,7 +107,7 @@ impl Layout {
         let mut last = self.clone();
         loop {
             let next = last.simulate_one(count_fn, max_occupied);
-            // println!("{}\n", next);
+            println!("{}\n\n\n", next);
             if next == last {
                 return next;
             }
@@ -187,7 +160,7 @@ impl Display for Layout {
 fn read_data() -> Layout {
     let values = fs::read_to_string("assets/day11.txt").expect("Could not load file");
     let rows = values
-        .split('\n')
+        .lines()
         .filter(|s| !s.is_empty())
         .map(|s| Place::from_str(s))
         .collect();
