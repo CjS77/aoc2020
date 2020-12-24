@@ -74,8 +74,8 @@ fn flip_tiles(floor_plan: &HashSet<Position>) -> HashSet<Position> {
         });
     // println!("Bounds - {},{},{},{}", min_x, max_x, min_y, max_y);
     // Process the square set by the bounds
-    for x in min_x-3..max_x+3 {
-        for y in min_y-2..max_y+2 {
+    for x in min_x-2..=max_x+2 {
+        for y in min_y-1..=max_y+1 {
             // even x offsets must have even y offsets
             if ((x % 2 == 0) && (y % 2 == 1)) || ((x % 2 == 1) && (y % 2 ==0)) { continue; }
             let pos = Position { x, y };
