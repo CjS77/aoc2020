@@ -11,11 +11,6 @@ pub fn day23a() -> String {
 }
 
 pub fn day23b() -> String {
-    let mut cups = new_list("685974213");
-    let mut cursor = cups.cursor_front_mut();
-    (0..10).fold((cursor, cups), |(cursor, cups), _| {
-        turn(cursor, cups)
-    });
     format!("{}", 1)
 }
 
@@ -122,36 +117,4 @@ pub fn new_list(s: &str) -> LinkedList<usize> {
     }
     list
 }
-
-pub fn turn<'a>(mut current: CursorMut<'a, usize>, mut list: LinkedList<usize>) -> (CursorMut<'a, usize>, LinkedList<usize>) {
-    let mut picked_up = current.split_after();
-    let mut front = list;
-    if picked_up.len() < 3 {
-        let required = 3 - picked_up.len();
-        let mut back = list.split_off(required);
-        picked_up.append(&mut list);
-        front = back;
-    }
-    let back = picked_up.split_off(3);
-    current.splice_after(back);
-    let cur_val = current.current().unwrap().clone();
-    let mut dest_val = if cur_val == 1 { SIZE } else { cur_val - 1 };
-    while picked_up.contains(&dest_val) {
-        dest_val -= 1;
-        if dest_val == 0 { dest_val = SIZE; }
-    }
-    println!("Front len: {}, picked_up: {}, back: {}", list.len(), picked_up.len(), back.len());
-
-    for val in list.iter().take(12) {
-        print!("{} ", val);
-    }
-    println!();
-
-    (current, front)
-}
-
-
-
-
-
 
