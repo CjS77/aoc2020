@@ -10,11 +10,31 @@ pub fn day13a() -> String {
         }
         time += 1;
     }
-    format!("Ok")
+    format!("You died waiting :(")
 }
 
-fn is_prime(v: usize) -> bool {
-    (2..(v as f64).sqrt() as usize).all(|d| v % d != 0)
+pub fn day13b() -> String {
+    let mut vals = read_data2();
+    vals.sort_by(|a, b| b.1.cmp(&a.1));
+    let mods = vals.iter().map(|(_, p)| *p as i64).collect::<Vec<i64>>();
+    let resids = vals.iter().map(|(i, p)| *p as i64 - *i as i64).collect::<Vec<i64>>();
+
+    chinese_remainder(&resids, &mods).unwrap().to_string()
+}
+
+fn read_data() -> (usize, Vec<usize>) {
+    let values = fs::read_to_string("assets/day13.txt").expect("Could not load file");
+    let lines = values
+        .lines()
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .collect::<Vec<String>>();
+    let ts = lines[0].parse::<usize>().unwrap();
+    let mut busses = lines[1].split(",")
+        .filter_map(|s| s.parse::<usize>().ok())
+        .collect::<Vec<usize>>();
+    busses.sort_unstable();
+    (ts, busses)
 }
 
 // from: https://rosettacode.org/wiki/Chinese_remainder_theorem#Rust
@@ -46,16 +66,6 @@ fn chinese_remainder(residues: &[i64], modulii: &[i64]) -> Option<i64> {
     Some(sum % prod)
 }
 
-
-pub fn day13b() -> String {
-    let mut vals = read_data2();
-    vals.sort_by(|a, b| b.1.cmp(&a.1));
-    let mods = vals.iter().map(|(_, p)| *p as i64).collect::<Vec<i64>>();
-    let resids = vals.iter().map(|(i, p)| *p as i64 - *i as i64).collect::<Vec<i64>>();
-
-    chinese_remainder(&resids, &mods).unwrap().to_string()
-}
-
 fn read_data2() -> Vec<(usize, usize)> {
     let values = fs::read_to_string("assets/day13.txt").expect("Could not load file");
     let lines = values
@@ -68,19 +78,4 @@ fn read_data2() -> Vec<(usize, usize)> {
         .enumerate()
         .filter_map(|(i, s)| s.parse::<usize>().ok().map(|v| (i, v)))
         .collect::<Vec<(usize, usize)>>()
-}
-
-fn read_data() -> (usize, Vec<usize>) {
-    let values = fs::read_to_string("assets/day13.txt").expect("Could not load file");
-    let lines = values
-        .split('\n')
-        .filter(|s| !s.is_empty())
-        .map(String::from)
-        .collect::<Vec<String>>();
-    let ts = lines[0].parse::<usize>().unwrap();
-    let mut busses = lines[1].split(",")
-        .filter_map(|s| s.parse::<usize>().ok())
-        .collect::<Vec<usize>>();
-    busses.sort_unstable();
-    (ts, busses)
 }
