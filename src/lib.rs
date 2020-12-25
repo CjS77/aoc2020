@@ -27,3 +27,5 @@ pub mod day21;
 pub mod day22;
 pub mod day23;
 pub mod day24;
+#[allow(non_upper_case_globals)]
+pub mod day25;
