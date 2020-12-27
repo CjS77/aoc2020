@@ -73,7 +73,7 @@ fn read_data2() -> Vec<(usize, usize)> {
         .map(String::from)
         .collect::<Vec<String>>();
     lines[1]
-        .split(",")
+        .split(',')
         .enumerate()
         .filter_map(|(i, s)| s.parse::<usize>().ok().map(|v| (i, v)))
         .collect::<Vec<(usize, usize)>>()

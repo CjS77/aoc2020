@@ -1,5 +1,4 @@
 use std::collections::LinkedList;
-use std::collections::linked_list::{Cursor, CursorMut};
 
 pub fn day23a() -> String {
     let mut cups = Cups::new("685974213");
@@ -36,10 +35,6 @@ impl Cups {
         let index = rem.iter().enumerate().find(|(_i, &v)| v == destination).unwrap().0 + 1;
         self.ring[1..=index + 3].rotate_left(3);
         self.ring.rotate_left(1);
-    }
-
-    pub fn to_string(&self) -> String {
-        self.ring.iter().map(|v| (v + 48) as char).collect()
     }
 
     pub fn ans(&self) -> String {
@@ -80,19 +75,17 @@ impl BigCups {
         let mut next_current = ci + 1;
         if di > ci {
             self.ring[ci + 1..=di].rotate_left(3);
+        } else if ci == SIZE - 1 {
+            self.ring[0..=di].rotate_left(3);
+            next_current = 0;
+        } else if ci > SIZE - 4 {
+            let n = SIZE - ci - 1;
+            next_current = 0;
+            self.ring[di + 1..SIZE].rotate_right(n);
+            self.ring[0..=di + n].rotate_left(3 - n);
         } else {
-            if ci == SIZE - 1 {
-                self.ring[0..=di].rotate_left(3);
-                next_current = 0;
-            } else if ci > SIZE - 4 {
-                let n = SIZE - ci - 1;
-                next_current = 0;
-                self.ring[di + 1..SIZE].rotate_right(n);
-                self.ring[0..=di + n].rotate_left(3 - n);
-            } else {
-                self.ring[di + 1..=ci + 3].rotate_right(3);
-                next_current = (ci + 4) % SIZE;
-            }
+            self.ring[di + 1..=ci + 3].rotate_right(3);
+            next_current = (ci + 4) % SIZE;
         }
         self.current_index = next_current;
     }

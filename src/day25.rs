@@ -1,13 +1,12 @@
 use fnv::FnvHashMap;
-use std::collections::HashMap;
 use crate::bits::is_set;
 
 pub fn day25a() -> String {
     let crypto = Crypto::new();
-    println!("k={}, Pa={}", 8, pubkey_slow(8));
-    println!("k={}, Pa={}", 8, crypto.pubkey(8));
-    println!("k={}, Pa={}", 11, pubkey_slow(11));
-    println!("k={}, Pa={}", 11, crypto.pubkey(11));
+    println!("k=8, Pa={}", pubkey_slow(8));
+    println!("k=8, Pa={}", crypto.pubkey(8));
+    println!("k=11, Pa={}", pubkey_slow(11));
+    println!("k=11, Pa={}", crypto.pubkey(11));
 
     let ka = brute_force(Pa, &crypto);
     let kb = brute_force(Pb, &crypto);

@@ -33,7 +33,7 @@ pub struct Passport {
 
 impl Passport {
     fn new(s: &str) -> Option<Passport> {
-        Self::all_fields_present(s).and_then(Self::is_valid)
+        Self::all_fields_present(s).and_then(Self::check_validity)
     }
 
     pub fn all_fields_present(s: &str) -> Option<Passport> {
@@ -69,7 +69,7 @@ impl Passport {
         }
     }
 
-    fn is_valid(self) -> Option<Passport> {
+    fn check_validity(self) -> Option<Passport> {
         if check_pid(&self.pid)
             && check_byr(&self.byr)
             && check_iyr(&self.iyr)

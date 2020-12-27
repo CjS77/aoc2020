@@ -3,7 +3,7 @@ use regex::Regex;
 
 pub fn day16a() -> String {
     let data = read_data("assets/day16.txt");
-    let (fields, my_ticket, tickets) = process_data(data);
+    let (fields, _my_ticket, tickets) = process_data(data);
     let res = tickets.iter()
         .filter_map(|t| {
             t.find_invalid(&fields).map(|(_i, v)| v)

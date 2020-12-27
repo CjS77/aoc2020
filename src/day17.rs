@@ -6,7 +6,7 @@ pub fn day17a() -> String {
         let index = Cube::coord_to_index(20, pos);
         assert_eq!(i, index, "index {}, pos {:?}", index, pos);
     }
-    format!("Ok")
+    "Ok".to_string()
 }
 
 pub fn day17b() -> String {
@@ -54,6 +54,7 @@ impl Cube {
         }
     }
 
+    #[allow(clippy::many_single_char_names)]
     pub fn coord_to_index(size: usize, pos: (isize, isize, isize, isize)) -> isize {
         let (x, y, z, w) = pos;
         let b = size as isize + 1;

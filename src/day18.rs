@@ -32,7 +32,7 @@ pub enum StackItem {
 
 impl StackItem {
     pub fn from_str(s: &str) -> Option<Self> {
-        if s.starts_with("(") {
+        if s.starts_with('(') {
             let substack = ExecutionStack::from_str(&s[1..s.len() - 1]);
             return Some(Self::Paren(substack));
         }
@@ -87,12 +87,12 @@ impl ExecutionStack {
         for token in s.split(' ') {
             // println!("Token: '{}' Subexpr='{}', ()={}, in_sub={}", token, sub_expr, paren_count, in_sub_expr);
             if token.is_empty() { continue; }
-            if token.starts_with("(") {
+            if token.starts_with('(') {
                 in_sub_expr = true;
                 paren_count += token.chars().filter(|c| *c == '(').count();
             }
             if in_sub_expr {
-                let num_closing = token.find(")").map(|i| token.len() - i).unwrap_or_default();
+                let num_closing = token.find(')').map(|i| token.len() - i).unwrap_or_default();
                 paren_count -= num_closing;
                 sub_expr = if sub_expr.is_empty() {
                     token.to_string()

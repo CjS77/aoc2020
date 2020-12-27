@@ -1,6 +1,4 @@
 use crate::bits::read_data;
-use std::collections::{HashSet};
-use std::panic::resume_unwind;
 use strum::IntoEnumIterator;
 use strum::EnumIter;
 use fnv::FnvHashSet;
@@ -18,7 +16,7 @@ pub fn day24a() -> String {
 pub fn day24b() -> String {
     let data = get_moves("assets/day24.txt");
     let day0 = process_moves(data);
-    let day100 = (0..100).fold(day0, |floor_plan, i| {
+    let day100 = (0..100).fold(day0, |floor_plan, _i| {
         // println!("Day {} - {}", i, floor_plan.len());
         flip_tiles(&floor_plan)
     });

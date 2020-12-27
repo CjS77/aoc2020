@@ -19,10 +19,10 @@ pub fn day22b() -> String {
 
 pub fn read_decks(n: usize) -> Game {
     let data = read_data("assets/day22.txt");
-    let pa = data[1..n+1].iter()
+    let pa = data[1..n + 1].iter()
         .map(|s| s.parse::<usize>().unwrap())
         .collect();
-    let pb = data[n+3..2*n+3].iter()
+    let pb = data[n + 3..2 * n + 3].iter()
         .map(|s| s.parse::<usize>().unwrap())
         .collect();
     Game::new(pa, pb)
@@ -44,7 +44,7 @@ impl Game {
     }
 
     pub fn is_finished(&self) -> bool {
-        self.hands[0].is_empty()  || self.hands[1].is_empty()
+        self.hands[0].is_empty() || self.hands[1].is_empty()
     }
 
     pub fn draw(&mut self) -> (usize, usize) {
@@ -58,12 +58,12 @@ impl Game {
         while !self.is_finished() {
             let (a, b) = self.draw();
             self.turn += 1;
-            if a>b {
+            if a > b {
                 self.hands[0].push(a);
                 self.hands[0].push(b);
                 continue;
             }
-            if a<b {
+            if a < b {
                 self.hands[1].push(b);
                 self.hands[1].push(a);
                 continue;
@@ -109,14 +109,12 @@ impl Game {
                     self.hands[1].push(b);
                     self.hands[1].push(a);
                 }
+            } else if a > b {
+                self.hands[0].push(a);
+                self.hands[0].push(b);
             } else {
-                if a>b {
-                    self.hands[0].push(a);
-                    self.hands[0].push(b);
-                } else {
-                    self.hands[1].push(b);
-                    self.hands[1].push(a);
-                }
+                self.hands[1].push(b);
+                self.hands[1].push(a);
             }
         }
         // println!("Done after {} turns", self.turn);
@@ -133,7 +131,7 @@ impl Game {
         hand.iter().rev()
             .enumerate()
             .fold(0usize, |score, (i, c)| {
-                score + (i+1)* *c
+                score + (i + 1) * *c
             })
     }
 }

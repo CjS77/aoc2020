@@ -31,7 +31,7 @@ impl Game {
     fn next_value(&mut self) {
         let turn = self.turn;
         let last_spoken = self.value;
-        let v = self.values.get(&last_spoken).unwrap().clone();
+        let v = *self.values.get(&last_spoken).unwrap();
         // If it wasn't spoken, say 0 next
         let mut next_val = 0usize;
         // If it has been said more than once, the next value is the difference between the turns it was last spoken

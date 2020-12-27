@@ -1,6 +1,4 @@
 use crate::bits::read_data;
-use std::collections::HashMap;
-use itertools::Itertools;
 
 pub fn day20a() -> String {
     let tiles = read_tiles();
@@ -52,7 +50,7 @@ impl Tile {
     }
 
     pub fn transpose(&self) -> Tile {
-        let mut new_data = self.data.clone();
+        let mut new_data = self.data;
         for (i, val) in self.data.iter().enumerate() {
             let (x, y) = i_to_xy(i);
             let new_i = xy_to_i((y, x));
@@ -72,7 +70,7 @@ impl Tile {
     }
 
     pub fn flip_y(&self) -> Tile {
-        let mut new_data = self.data.clone();
+        let mut new_data = self.data;
         for (i, val) in self.data.iter().enumerate() {
             let (x, y) = i_to_xy(i);
             let new_i = xy_to_i((x, 9 - y));
