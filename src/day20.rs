@@ -1,214 +1,548 @@
-use crate::bits::read_data;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::ops::{Add, Not};
+use std::fmt::{Display, Formatter};
 
 pub fn day20a() -> String {
-    let tiles = read_tiles();
-    let n = (tiles.len() as f64).sqrt();
-    println!("{} tiles ({} x {})", tiles.len(), n, n);
-    let corners = find_corners(&tiles);
-    println!("Corners: {:?}", corners);
-    format!("{}", corners.iter().product::<usize>())
+    let (_tiles, edges) = read_tiles();
+    let edge_tiles: Vec<_> = edges
+        .iter()
+        .filter(|(_, tile_ids)| tile_ids.len() == 1)
+        .map(|(_, tile_ids)| tile_ids.iter().next().unwrap())
+        .collect();
+
+    let corner_tiles: HashSet<_> = edge_tiles
+        .iter()
+        .cloned()
+        .filter(|&edge_tile| {
+            edge_tiles
+                .iter()
+                .cloned()
+                .filter(|&tile| tile == edge_tile)
+                .count()
+                == 4 // two times (regular and flipped) per each edge
+        })
+        .cloned()
+        .collect();
+
+    corner_tiles.iter().product::<u64>().to_string()
 }
 
 pub fn day20b() -> String {
-    let tiles = read_tiles();
-    // let image = Image::build_image(tiles);
-    format!("")
+    use EdgeIndex::*;
+    let (tiles, edges) = read_tiles();
+    let pieces = place_image_pieces(&tiles, &edges);
+
+    let mut image = assemble_image(pieces);
+
+    image = image.transform(&Left, &Upper, true);
+
+    println!("{}", image);
+
+    let monster_pixels = monster_pixels_positions();
+    let monsters_count = count_monsters(&mut image, &monster_pixels);
+
+    let answer = image.0.values()
+        .filter(|&value| *value).count() -
+        monsters_count * monster_pixels.len();
+
+    format!("{}", answer)
 }
 
-fn read_tiles() -> Vec<Tile> {
-    let data = read_data("assets/day20.txt");
-    data[0..].chunks(12)
-        .filter(|t| t.len() >= 10)
-        .map(|t| {
-            // println!("{}", &t[0][5..9]);
-            let id = t[0][5..9].parse::<usize>().unwrap();
-            Tile::new(id, &t[1..11])
-        }).collect()
+fn read_tiles() -> (HashMap<TileId, Tile>, HashMap<EdgeChecksum, Vec<TileId>>) {
+    let input = std::fs::read_to_string("assets/day20.txt").unwrap();
+    let tiles = parse_tiles(&input);
+    let edges = parse_edges(tiles.values());
+    (tiles, edges)
 }
 
-const MONSTER: [&str; 3] = [
-    "                  # ",
-    "#    ##    ##    ###",
-    " #  #  #  #  #  #   "
-];
+const TILE_SIZE: i32 = 10;
+const CROPPED_TILE_SIZE: i32 = TILE_SIZE - 2;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Tile {
-    id: usize,
-    data: [char; 100],
+type Pixel = bool;
+
+#[derive(Copy, Clone)]
+enum EdgeIndex {
+    Upper = 0,
+    Right = 1,
+    Lower = 2,
+    Left = 3,
 }
 
-impl Tile {
-    pub fn new(id: usize, s: &[String]) -> Tile {
-        let mut data = ['.'; 100];
-        for (i, line) in s.iter().enumerate() {
-            for (j, c) in line.chars().enumerate() {
-                data[i * 10 + j] = c;
-            }
-        }
-        Self { id, data }
-    }
+impl Not for &EdgeIndex {
+    type Output = EdgeIndex;
 
-    pub fn transpose(&self) -> Tile {
-        let mut new_data = self.data;
-        for (i, val) in self.data.iter().enumerate() {
-            let (x, y) = i_to_xy(i);
-            let new_i = xy_to_i((y, x));
-            new_data[new_i] = *val;
-        }
-        Tile { id: self.id, data: new_data }
-    }
+    fn not(self) -> Self::Output {
+        use EdgeIndex::*;
 
-    pub fn flip_x(&self) -> Tile {
-        let mut new_data = ['X'; 100];
-        for (i, val) in self.data.iter().enumerate() {
-            let (x, y) = i_to_xy(i);
-            let new_i = xy_to_i((9 - x, y));
-            new_data[new_i] = *val;
-        }
-        Tile { id: self.id, data: new_data }
-    }
-
-    pub fn flip_y(&self) -> Tile {
-        let mut new_data = self.data;
-        for (i, val) in self.data.iter().enumerate() {
-            let (x, y) = i_to_xy(i);
-            let new_i = xy_to_i((x, 9 - y));
-            new_data[new_i] = *val;
-        }
-        Tile { id: self.id, data: new_data }
-    }
-
-    pub fn rotate(&self, dir: usize) -> Tile {
-        match dir {
-            1 => self.transpose().flip_x(),
-            2 => self.flip_x().flip_y(),
-            3 => self.transpose().flip_y(),
-            _ => unreachable!()
+        match self {
+            Upper => Lower,
+            Right => Left,
+            Lower => Upper,
+            Left => Right,
         }
     }
+}
 
-    pub fn get_edge(&self, i: usize) -> String {
-        match i {
-            0 => self.data[0..10].iter().collect(),
-            1 => (0..10).map(|i| 9 + 10 * i).map(|i| self.data[i]).collect(),
-            2 => self.data[90..100].iter().collect(),
-            3 => (0..10).map(|i| 10 * i).map(|i| self.data[i]).collect(),
-            _ => unreachable!(),
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+struct Vector2 {
+    x: i32,
+    y: i32,
+}
+
+type Position = Vector2;
+type Direction = Vector2;
+
+impl Add<Vector2> for Vector2 {
+    type Output = Self;
+
+    fn add(self, rhs: Vector2) -> Self::Output {
+        Vector2 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
         }
     }
+}
 
-    pub fn match_edge(&self, this_edge: usize, flip: bool, other: &Tile, other_edge: usize) -> bool {
-        let mut this = self.get_edge(this_edge);
-        if flip { this = this.chars().rev().collect(); }
-        let that = other.get_edge(other_edge);
-        this == that
+impl From<(i32, i32)> for Vector2 {
+    fn from((x, y): (i32, i32)) -> Self {
+        Vector2 { x, y }
+    }
+}
+
+impl From<&EdgeIndex> for Direction {
+    fn from(edge_index: &EdgeIndex) -> Self {
+        use EdgeIndex::*;
+
+        match edge_index {
+            Upper => (0, -1).into(),
+            Right => (1, 0).into(),
+            Lower => (0, 1).into(),
+            Left => (-1, 0).into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Image(HashMap<Position, Pixel>);
+
+impl Image {
+    fn normalize(&self) -> Image {
+        let min_x = self.0.keys().map(|position| position.x).min().unwrap();
+        let min_y = self.0.keys().map(|position| position.y).min().unwrap();
+
+        Image(
+            self.0
+                .iter()
+                .map(|(position, value)| (*position + (-min_x, -min_y).into(), *value))
+                .collect(),
+        )
     }
 
-    pub fn find_matching_edge(&self, this_edge: usize, other: &Tile) -> Vec<EdgeMatch> {
-        // println!("\nLooking for edge matches on {}.{} against {}", self.id, this_edge, other.id);
-        let mut res = Vec::new();
-        for that_edge in 0..4 {
-            for flip in &[false, true] {
-                if self.match_edge(this_edge, *flip, other, that_edge) {
-                    res.push(EdgeMatch { flip: *flip, edge: this_edge, that_id: other.id, that_edge });
-                    // println!("{}.{} ({}) matches {}.{}", this.id, this_edge, flip, other.id, that_edge);
+    fn transform(&self, source_index: &EdgeIndex, target_index: &EdgeIndex, flip: bool) -> Image {
+        let source: Direction = source_index.into();
+        let target: Direction = target_index.into();
+
+        let cos = source.x * target.x + source.y * target.y;
+        let sin = source.x * target.y - source.y * target.x;
+
+        let mut pixels: HashMap<Position, Pixel> = self.0.iter()
+            .map(|(position, value)| {
+                (
+                    (position.x * cos - position.y * sin, position.x * sin + position.y * cos).into(),
+                    *value,
+                )
+            })
+            .collect();
+
+        use EdgeIndex::*;
+
+        if flip {
+            match &target_index {
+                Upper | Lower => {
+                    pixels = pixels
+                        .iter()
+                        .map(|(position, value)| ((-position.x, position.y).into(), *value))
+                        .collect()
+                }
+                Right | Left => {
+                    pixels = pixels
+                        .iter()
+                        .map(|(position, value)| ((position.x, -position.y).into(), *value))
+                        .collect()
                 }
             }
         }
-        res
+
+        Image(pixels).normalize()
     }
 
-    pub fn get_all_matches(&self, others: &[Tile]) -> Vec<EdgeMatch> {
-        (0..4).map(|edge| {
-                others.iter().filter(|&t| t != self)
-                    .map(|t| self.find_matching_edge(edge, t))
-                    .flatten()
-                    .collect::<Vec<EdgeMatch>>()
-            })
-            .flatten()
-            .collect()
+    fn rotate_once(&self) -> Image {
+        use EdgeIndex::*;
+        self.transform(&Left, &Upper, false)
     }
 
-    pub fn is_corner(&self, others: &[Tile]) -> bool {
-        let no_matches: Vec<usize> = (0..4).filter(|i| {
-            others.iter()
-                .filter(|&t| t != self)
-                .all(|t| {
-                    // println!("{}.{} vs {}", self.id, *i, t.id);
-                    self.find_matching_edge(*i, t).is_empty()
-                })
-        }).collect();
-        // println!("{} had these edges with no matches: {:?}", self.id, no_matches);
-        no_matches.len() == 2
+    fn flip(&self) -> Image {
+        use EdgeIndex::*;
+        self.transform(&Upper, &Upper, true)
+    }
+
+    pub fn size(&self) -> usize {
+        (self.0.len() as f64).sqrt() as usize
     }
 }
 
-#[derive(Clone, Copy, Default, Debug)]
-pub struct EdgeMatch {
-    flip: bool,
-    edge: usize,
-    that_id: usize,
-    that_edge: usize,
+impl Display for Image {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let n = self.size() as i32;
+        for y in 0..n {
+            for x in 0..n {
+                let pos = Vector2 { x, y};
+                let pixel = match self.0.get(&pos) {
+                    None => "X",
+                    Some(true) => "#",
+                    Some(false) => ".",
+                };
+                write!(f, "{}", pixel)?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
+    }
 }
 
+type TileId = u64;
+type EdgeChecksum = usize;
 
-pub struct Image {
-    data: Vec<char>
+#[derive(Clone)]
+struct Tile {
+    id: TileId,
+    image: Image,
+    edges_checksums: [EdgeChecksum; 4],
+    flipped_edges_checksums: [EdgeChecksum; 4],
 }
 
-// impl Image {
-//     pub fn new(n: usize) -> Self {
-//         let size = n * 100;
-//         Self { data: vec!['@'; size] }
-//     }
-//
-//     fn build_image(tiles: Vec<Tile>) -> Image {
-//         let mut image = Image::new(tiles.len());
-//         let corners = find_corners(&tiles);
-//         println!("Corners: {:?}", corners);
-//
-//         assert_eq!(corners.len(), 4);
-//         let mut match_db = HashMap::<usize, Vec<EdgeMatch>>::new();
-//         tiles.iter()
-//             .for_each(|t| {
-//                 let matches = t.get_all_matches(&tiles);
-//                 match_db.insert(t.id, matches);
-//             });
-//
-//         // Find the top left corner -- this can be any corner tile, the image will just be
-//         // rotated / flipped
-//
-//         let (corner, m) = match_db.iter().find(|(&id, &m)| m.len() == 2).unwrap();
-//         // How much to rotate?
-//         let index = m.iter().map(|m| m.edge).min().unwrap();
-//         let corner = remove_tile(&corner)
-//         image
-//     }
-// }
+impl Tile {
+    fn transform(&self, source_index: &EdgeIndex, target_index: &EdgeIndex, flip: bool) -> Tile {
+        let image = self.image.transform(source_index, target_index, flip);
 
-fn remove_tile(tile: &Tile, tiles: &mut Vec<Tile>) {
-    let index = tiles.iter().enumerate().find(|(_, &t)| t.id == tile.id).map(|(i, _)| i).unwrap();
-    tiles.remove(index);
-}
+        let mut edges_checksums = [0; 4];
+        let mut flipped_edges_checksums = [0; 4];
 
-#[inline(always)]
-fn i_to_xy(i: usize) -> (usize, usize) {
-    (i % 10, i / 10)
-}
+        for i in 0..4 {
+            edges_checksums[i] = self.edges_checksums
+                [(4 + i + (*source_index) as usize - (*target_index) as usize) % 4];
+            flipped_edges_checksums[i] = self.flipped_edges_checksums
+                [(4 + i + (*source_index) as usize - (*target_index) as usize) % 4];
+        }
 
-#[inline(always)]
-fn xy_to_i(pos: (usize, usize)) -> usize {
-    pos.0 + pos.1 * 10
-}
+        use EdgeIndex::*;
 
-fn find_corners(tiles: &[Tile]) -> Vec<usize> {
-    let mut res = Vec::new();
-    for tile in tiles.iter() {
-        if tile.is_corner(tiles) {
-            res.push(tile.id)
+        if flip {
+            let [upper, right, lower, left] = edges_checksums;
+            let [upper_flipped, right_flipped, lower_flipped, left_flipped] =
+                flipped_edges_checksums;
+
+            match &target_index {
+                Upper | Lower => {
+                    edges_checksums = [upper_flipped, left_flipped, lower_flipped, right_flipped];
+                    flipped_edges_checksums = [upper, left, lower, right];
+                }
+                Right | Left => {
+                    edges_checksums = [lower_flipped, right_flipped, upper_flipped, left_flipped];
+                    flipped_edges_checksums = [lower, right, upper, left];
+                }
+            }
+        }
+
+        Tile {
+            id: self.id,
+            image,
+            edges_checksums,
+            flipped_edges_checksums,
         }
     }
-    res
 }
 
+fn parse_tile(tile_str: &str) -> Tile {
+    let id_str = tile_str.lines().next().unwrap();
+    let id = id_str[5..id_str.len() - 1].parse::<TileId>().unwrap();
+
+    let pixels: HashMap<Position, Pixel> = tile_str
+        .lines()
+        .skip(1)
+        .enumerate()
+        .map(move |(y, line)| {
+            line.chars()
+                .enumerate()
+                .map(move |(x, c)| ((x as i32, y as i32).into(), c == '#'))
+        })
+        .flatten()
+        .collect();
+
+    let edges_checksums = edges_checksums(&pixels);
+    let flipped_edges_checksums = flipped_edges_checksums(&pixels);
+
+    let pixels = pixels
+        .into_iter()
+        .filter(|(position, _)| {
+            position.x != 0
+                && position.y != 0
+                && position.x != TILE_SIZE - 1
+                && position.y != TILE_SIZE - 1
+        })
+        .collect();
+
+    Tile {
+        id,
+        image: Image(pixels).normalize(),
+        edges_checksums,
+        flipped_edges_checksums,
+    }
+}
+
+fn edges_checksums(pixels: &HashMap<Position, Pixel>) -> [EdgeChecksum; 4] {
+    let upper_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == 0)
+        .map(|(position, &pixel)| (2_usize.pow(position.x as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    let right_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| (2_usize.pow(position.y as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    let lower_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.x) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    let left_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == 0)
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.y) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    [
+        upper_checksum,
+        right_checksum,
+        lower_checksum,
+        left_checksum,
+    ]
+}
+
+fn flipped_edges_checksums(pixels: &HashMap<Position, Pixel>) -> [EdgeChecksum; 4] {
+    let upper_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == 0)
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.x) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    let right_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| {
+            2_usize.pow(((TILE_SIZE - 1) - position.y) as u32) * (pixel as EdgeChecksum)
+        })
+        .sum::<EdgeChecksum>();
+
+    let lower_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.y == (TILE_SIZE - 1))
+        .map(|(position, &pixel)| (2_usize.pow(position.x as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    let left_flipped_checksum = pixels
+        .iter()
+        .filter(|(&position, _)| position.x == 0)
+        .map(|(position, &pixel)| (2_usize.pow(position.y as u32) * (pixel as EdgeChecksum)))
+        .sum::<EdgeChecksum>();
+
+    [
+        upper_flipped_checksum,
+        right_flipped_checksum,
+        lower_flipped_checksum,
+        left_flipped_checksum,
+    ]
+}
+
+fn parse_tiles(input: &str) -> HashMap<TileId, Tile> {
+    input.split("\n\n")
+        .filter(|s| !s.is_empty())
+        .map(|tile_str| {
+            let tile = parse_tile(tile_str);
+            (tile.id, tile)
+        })
+        .collect()
+}
+
+fn parse_edges<'a>(tiles: impl Iterator<Item = &'a Tile>) -> HashMap<EdgeChecksum, Vec<TileId>> {
+    let mut edges: HashMap<EdgeChecksum, Vec<TileId>> = HashMap::new();
+
+    for tile in tiles {
+        for edge in tile.edges_checksums.iter() {
+            let edge_tiles = edges.entry(*edge).or_insert_with(Vec::new);
+            edge_tiles.push(tile.id);
+        }
+
+        for edge in tile.flipped_edges_checksums.iter() {
+            let edge_tiles = edges.entry(*edge).or_insert_with(Vec::new);
+            edge_tiles.push(tile.id);
+        }
+    }
+
+    edges
+}
+
+fn place_image_pieces(tiles: &HashMap<TileId, Tile>, edges: &HashMap<EdgeChecksum, Vec<TileId>>) -> HashMap<Position, Image> {
+    use EdgeIndex::*;
+    let first_tile = tiles.values().next().unwrap();
+    let starting_position = (0, 0).into();
+
+    let mut image_pieces: HashMap<Position, Image> =
+        [(starting_position, first_tile.image.clone())]
+            .iter()
+            .cloned()
+            .collect();
+
+    let mut queue: VecDeque<(Position, Tile)> =
+        VecDeque::from(vec![(starting_position, first_tile.clone())]);
+    let mut visited: HashSet<Position> = [starting_position].iter().cloned().collect();
+
+    while !queue.is_empty() {
+        let (current_position, current_tile) = queue.pop_front().unwrap();
+
+        for edge_index in &[Upper, Right, Lower, Left] {
+            let position = current_position + edge_index.into();
+
+            if !visited.contains(&position) {
+                let edge_checksum = current_tile.edges_checksums[(*edge_index) as usize];
+
+                for id in edges.get(&edge_checksum).unwrap() {
+                    if *id != current_tile.id {
+                        visited.insert(position);
+
+                        let mut neighbor_tile = tiles.get(id).unwrap().clone();
+
+                        for index in &[Upper, Right, Lower, Left] {
+                            if neighbor_tile.flipped_edges_checksums[*index as usize]
+                                == edge_checksum
+                            {
+                                neighbor_tile = neighbor_tile.transform(index, &!edge_index, false);
+                                break;
+                            } else if neighbor_tile.edges_checksums[*index as usize]
+                                == edge_checksum
+                            {
+                                neighbor_tile = neighbor_tile.transform(index, &!edge_index, true);
+                                break;
+                            }
+                        }
+
+                        queue.push_back((position, neighbor_tile.clone()));
+                        image_pieces.insert(position, neighbor_tile.image.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    image_pieces
+}
+
+fn assemble_image(image_pieces: HashMap<Position, Image>) -> Image {
+    let mut image = Image(HashMap::new());
+
+    for (large_position, tile_image) in image_pieces.iter() {
+        for x in 0..CROPPED_TILE_SIZE {
+            for y in 0..CROPPED_TILE_SIZE {
+                let pixel = tile_image.0.get(&(x as i32, y as i32).into()).unwrap();
+
+                image.0.insert(
+                    (
+                        large_position.x * CROPPED_TILE_SIZE + (x - 1) as i32,
+                        large_position.y * CROPPED_TILE_SIZE + (y - 1) as i32,
+                    )
+                        .into(),
+                    *pixel,
+                );
+            }
+        }
+    }
+
+    image.normalize()
+}
+
+fn monster_pixels_positions() -> Vec<Position> {
+    const MONSTER_PATTERN: &str = r"                  #
+#    ##    ##    ###
+ #  #  #  #  #  #   ";
+
+    MONSTER_PATTERN
+        .lines()
+        .enumerate()
+        .map(move |(y, line)| {
+            line.chars()
+                .enumerate()
+                .filter(move |(_, c)| *c == '#')
+                .map(move |(x, _)| (x as i32, y as i32).into())
+        })
+        .flatten()
+        .collect()
+}
+
+fn count_monsters(image: &mut Image, monster_pixels: &[Position]) -> usize {
+    let max_x = image.0.keys().map(|position| position.x).max().unwrap();
+    let max_y = image.0.keys().map(|position| position.y).max().unwrap();
+
+    let monster_max_x = monster_pixels
+        .iter()
+        .map(|position| position.x)
+        .max()
+        .unwrap();
+    let monster_max_y = monster_pixels
+        .iter()
+        .map(|position| position.y)
+        .max()
+        .unwrap();
+
+    let mut monsters_count = 0;
+
+    for attempt in 0..8 {
+        for y in 0..=max_y - monster_max_y + 1 {
+            'next_pixel: for x in 0..=max_x - monster_max_x + 1 {
+                let current_position: Position = (x, y).into();
+
+                for monster_position in monster_pixels.iter() {
+                    match image.0.get(&(current_position + *monster_position)) {
+                        None => {
+                            println!("{}", image);
+                            println!("Missing pixel - {:?}", current_position + *monster_position)
+                        },
+                        Some(false) => continue 'next_pixel,
+                        Some(true) => {}
+                    }
+                }
+
+                monsters_count += 1;
+            }
+        }
+
+        if monsters_count > 0 {
+            break;
+        } else if attempt == 3 {
+            *image = image.flip();
+        } else {
+            *image = image.rotate_once();
+        }
+    }
+
+    monsters_count
+}
