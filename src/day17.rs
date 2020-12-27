@@ -1,11 +1,9 @@
 use crate::bits::read_data;
 
 pub fn day17a() -> String {
-    for i in -1000..=1000 {
-        let pos = Cube::index_to_coord(20, i);
-        let index = Cube::coord_to_index(20, pos);
-        assert_eq!(i, index, "index {}, pos {:?}", index, pos);
-    }
+    let data = read_data("assets/day17.txt");
+    let _cube = parse_data(data);
+
     "Ok".to_string()
 }
 
