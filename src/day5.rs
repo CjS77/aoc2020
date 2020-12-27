@@ -2,8 +2,7 @@ use std::fs;
 
 pub fn day5a() -> String {
     let cards = read_data();
-    cards
-        .iter()
+    cards.iter()
         .map(|s| calc_id(s.as_str()))
         .max()
         .unwrap()
@@ -13,12 +12,13 @@ pub fn day5a() -> String {
 pub fn day5b() -> String {
     let cards = read_data();
     let mut seats = [false; 128 * 8];
-    cards.iter().for_each(|s| {
-        let id = calc_id(s);
-        seats[id] = true;
-    });
-    for i in 1..128 * 8 - 1 {
-        if !seats[i] && seats[i - 1] && seats[i + 1] {
+    cards.iter()
+        .for_each(|s| {
+            let id = calc_id(s);
+            seats[id] = true;
+        });
+    for i in 1..128*8-1 {
+        if !seats[i] && seats[i-1] && seats[i+1] {
             return i.to_string();
         }
     }
@@ -40,15 +40,16 @@ pub fn find_seat(s: &str) -> usize {
 }
 
 pub fn find_index(len: usize, bottom: char, top: char, code: &str) -> usize {
-    let (low, _high, _rem) = code.chars().fold((0usize, len - 1usize, len), |(mut low, mut high, mut rem), c| {
-         rem /= 2;
-        match c {
-            c if c == bottom => high -=  rem,
-            c if c == top => low += rem,
-            _ => unreachable!(),
-        }
-        (low, high, rem)
-    });
+    let (low, _high, _rem) = code.chars()
+        .fold((0usize, len-1usize, len), |(mut low, mut high, mut rem), c| {
+            rem /= 2;
+            match c {
+                c if c == bottom => high -= rem,
+                c if c == top => low += rem,
+                _ => unreachable!()
+            }
+            (low, high, rem)
+        });
     low
 }
 

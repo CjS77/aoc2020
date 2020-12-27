@@ -1,6 +1,6 @@
+use std::fs;
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs;
 
 pub fn day7a() -> String {
     let bags = read_data();
@@ -22,16 +22,12 @@ fn count_bags(bag: &Bag, set: &HashMap<String, Bag>) -> usize {
         println!("{} is empty", bag.color);
         return 0;
     }
-    println!(
-        "[{}] has {} inner bags: {:?}",
-       bag.color, bag.contains.len(),
-        &bag.contains
-    );
-    let n = bag.contains.iter().fold(0usize, |tot, (n, b)| {
-        let inner_count = count_bags(set.get(b.as_str()).unwrap(), set);
-
-        tot + n * (1 + inner_count)
-    });
+    println!("[{}] has {} inner bags: {:?}", bag.color, bag.contains.len(), &bag.contains);
+    let n = bag.contains.iter()
+        .fold(0usize, |tot, (n, b)| {
+            let inner_count = count_bags(set.get(b.as_str()).unwrap(), set);
+            tot + n * (1 + inner_count)
+        });
     println!("{} contains {}\n", bag.color, n);
     n
 }
@@ -58,12 +54,13 @@ impl Bag {
         if self.contains.is_empty() {
             return false;
         }
-        self.contains.iter().any(|(_, b)| {
-            b.as_str() == color ||
+        self.contains.iter()
+            .any(|(_, b)| {
+                b.as_str() == color ||
                     set.get(b.as_str())
                         .unwrap()
                         .can_ultimately_hold(color, set)
-        })
+            })
     }
 }
 
@@ -103,11 +100,11 @@ impl BagFactory {
             return Some(bag);
         }
         for s in contains.split(',') {
-        let cap = self.re2.captures(s)?;
-        let n = cap.get(1)?.as_str().parse::<usize>().unwrap();
-        let color = cap.get(2)?.as_str();
-        bag.can_contain(n, color)
-    }
+            let cap = self.re2.captures(s)?;
+            let n = cap.get(1)?.as_str().parse::<usize>().unwrap();
+            let color = cap.get(2)?.as_str();
+            bag.can_contain(n, color)
+        }
         Some(bag)
     }
 }

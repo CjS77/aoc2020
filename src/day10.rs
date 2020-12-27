@@ -19,7 +19,6 @@ pub fn day10b() -> String {
     // Scan the array, looking for 3-step jumps
     let mut start = 0;
     let mut end = 0;
-    println!("{:?}", adapters);
     while end < adapters.len() - 1 {
         if adapters[end + 1] - adapters[end] == 3 {
             let count = count_configurations(&adapters[start..end + 1]);
@@ -69,7 +68,7 @@ fn read_data() -> Vec<usize> {
     let mut result = vec![0usize];
     let values = fs::read_to_string("assets/day10.txt").expect("Could not load file");
     values
-        .split("\n")
+        .lines()
         .filter_map(|s| s.parse::<usize>().ok())
         .for_each(|v| result.push(v));
     result.sort_unstable();
