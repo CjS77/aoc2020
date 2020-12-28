@@ -36,7 +36,7 @@ pub fn bit_array(v: usize) -> [bool; 64] {
 pub fn read_data(file: &str) -> Vec<String> {
     let values = fs::read_to_string(file).expect("Could not load file");
     values
-        .split('\n')
+        .lines()
         .map(String::from)
         .collect::<Vec<String>>()
 }

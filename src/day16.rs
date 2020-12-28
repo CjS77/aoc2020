@@ -112,10 +112,10 @@ impl Field {
 }
 
 // departure track: 37-258 or 268-964
-const regex: &str = r"^(.*): (\d+)-(\d+) or (\d+)-(\d+)";
+const REGEX: &str = r"^(.*): (\d+)-(\d+) or (\d+)-(\d+)";
 
 fn process_data(lines: Vec<String>) -> (Vec<Field>, Ticket, Vec<Ticket>) {
-    let re = Regex::new(regex).unwrap();
+    let re = Regex::new(REGEX).unwrap();
     let fields = lines[0..20].iter().map(|s| Field::parse(s.as_str(), &re)).collect::<Vec<Field>>();
     println!("{:?}", fields);
     let my_ticket = Ticket::parse(lines[22].as_str());

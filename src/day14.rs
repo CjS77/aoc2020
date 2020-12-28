@@ -26,8 +26,8 @@ struct Machine {
 impl Machine {
     pub fn read_program(lines: Vec<String>) -> Self {
         let mut instructions = Vec::new();
-        let re = Regex::new(r"mem\[(\d+)\] = (\d+)").unwrap();
-        for s in lines {
+        let re = Regex::new(r"^mem\[(\d+)\] = (\d+)$").unwrap();
+        for s in lines.into_iter().filter(|s| !s.is_empty()) {
             if s.starts_with("mask") {
                 let map = BitMap::from_str(&s[7..]);
                 instructions.push(Instruction::Mask(map));
@@ -45,7 +45,7 @@ impl Machine {
     }
 
     pub fn exec(&mut self) {
-        self.mem = HashMap::new();
+        self.mem.clear();
         let mut mask = [BitMap::Nop; 36];
         for ins in &self.instructions {
             match ins {
@@ -136,16 +136,15 @@ enum BitMap {
 
 impl BitMap {
     pub fn from_str(s: &str) -> [BitMap; 36] {
-        let vec = s.chars().map(|c| {
-            match c {
+        let mut result = [BitMap::Nop; 36];
+        for (i, c) in s.chars().enumerate() {
+            result[i] = match c {
                 'X' => BitMap::Nop,
                 '1' => BitMap::One,
                 '0' => BitMap::Zero,
                 _ => panic!("Unknown bitmask {}", c)
-            }
-        }).collect::<Vec<Self>>();
-        let mut result = [BitMap::Nop; 36];
-        result.copy_from_slice(&vec);
+            };
+        }
         result
     }
 }

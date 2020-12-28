@@ -52,6 +52,7 @@ struct BigCups {
     current_index: usize,
 }
 
+#[allow(dead_code)]
 impl BigCups {
     pub fn new(s: &str) -> Self {
         let mut ring = s.chars().map(|c| c as usize - 48).collect::<Vec<usize>>();
