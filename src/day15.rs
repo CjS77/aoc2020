@@ -1,9 +1,21 @@
-use std::collections::HashMap;
+use fnv::FnvHashMap;
+
+pub fn day15a() -> String {
+    let mut game = Game::default();
+    let res = game.play(&[0, 3, 1, 6, 7, 5], 2020);
+    format!("{}", res)
+}
+
+pub fn day15b() -> String {
+    let mut game = Game::default();
+    let res = game.play(&[0, 3, 1, 6, 7, 5], 30_000_000);
+    format!("{}", res)
+}
 
 #[derive(Default)]
 struct Game {
     // Number, last 2 turns spoken. or zero if never spoken
-    values: HashMap<usize, (usize, usize)>,
+    values: FnvHashMap<usize, (usize, usize)>,
     turn: usize,
     value: usize,
 }
@@ -11,7 +23,7 @@ struct Game {
 impl Game {
     pub fn play(&mut self, input: &[usize], turns: usize) -> usize {
         self.turn = 0;
-        self.values = HashMap::new();
+        self.values = FnvHashMap::default();
         (0..turns).for_each(|_| self.next_turn(input));
         self.last_value()
     }
@@ -47,16 +59,3 @@ impl Game {
         self.value
     }
 }
-
-pub fn day15a() -> String {
-    let mut game = Game::default();
-    let res = game.play(&[0, 3, 1, 6, 7, 5], 2020);
-    format!("{}", res)
-}
-
-pub fn day15b() -> String {
-    let mut game = Game::default();
-    let res = game.play(&[0, 3, 1, 6, 7, 5], 30_000_000);
-    format!("{}", res)
-}
-
