@@ -30,22 +30,6 @@ pub enum StackItem {
     Paren(ExecutionStack),
 }
 
-impl StackItem {
-    pub fn from_str(s: &str) -> Option<Self> {
-        if s.starts_with('(') {
-            let substack = ExecutionStack::from_str(&s[1..s.len() - 1]);
-            return Some(Self::Paren(substack));
-        }
-        match s {
-            "+" => return Some(Self::Add),
-            "*" => return Some(Self::Multiply),
-            _ => {}
-        }
-        let v = s.parse::<isize>().ok()?;
-        Some(Self::Number(v))
-    }
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ExecutionStack {
     items: Vec<StackItem>,
@@ -55,27 +39,6 @@ impl ExecutionStack {
     /// Return a new `ExecutionStack` using the vector of [StackItem] in `items`
     pub fn new(items: Vec<StackItem>) -> Self {
         ExecutionStack { items }
-    }
-
-    /// Returns the number of entries in the execution stack
-    pub fn size(&self) -> usize {
-        self.items.len()
-    }
-
-    /// Returns a reference to the top entry in the stack without affecting the stack
-    pub fn peek(&self) -> Option<&StackItem> {
-        self.items.last()
-    }
-
-    /// Returns true if the stack is empty
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
-    /// Pops the top item in the stack. If the stack is not empty, `pop` returns the item, otherwise return `None` if
-    /// it is empty.
-    pub fn pop(&mut self) -> Option<StackItem> {
-        self.items.pop()
     }
 
     pub fn from_str(s: &str) -> Self {
