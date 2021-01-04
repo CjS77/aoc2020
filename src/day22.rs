@@ -118,13 +118,11 @@ impl Game {
             }
         }
         // println!("Done after {} turns", self.turn);
-        let winner = if self.hands[0].is_empty() {
+        if self.hands[0].is_empty() {
             1
         } else {
             0
-        };
-        // println!("{:?}", self.hands[winner]);
-        winner
+        }
     }
 
     pub fn score(hand: &[usize]) -> usize {

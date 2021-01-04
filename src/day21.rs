@@ -17,11 +17,16 @@ pub fn day21b() -> String {
     let foods = read_ingredients();
     let allergen_free = find_allergen_free_ingredients(&foods);
     let foods = eliminate_allergen_free(foods, &allergen_free);
-    let answer = identify_allergens_one_pass(&foods);
-    let answer = answer.into_iter()
+    println!("{} Foods remain after inert ingredients removed", foods.len());
+    foods.iter()
+        .enumerate()
+        .for_each(|(i, f)| {
+        println!("{}: Ingredients={} Allergens={}", i, f.ingredients.join(","), f.allergens.join(","));
+    });
+    let answer = identify_allergens(&foods);
+    answer.into_iter()
         .sorted_by(|(a, _), (b, _)| a.cmp(b))
-        .map(|(_, ingred)| ingred).join(",");
-    format!("{}", answer)
+        .map(|(_, ingred)| ingred).join(",")
 }
 
 #[derive(Debug, Clone)]
@@ -58,24 +63,24 @@ fn find_allergen_free_ingredients(foods: &[Food]) -> Vec<String> {
     let mut foods = foods.to_vec();
     let mut res = Vec::new();
     loop {
-        let mut new_foods = find_allergen_free_foods_one_pass(&foods);
-        println!("New allergen free foods: {}", new_foods.len());
-        if new_foods.is_empty() {
+        let mut allergen_free = find_allergen_free_ingredients_one_pass(&foods);
+        println!("New allergen free ingredients: {}", allergen_free.len());
+        if allergen_free.is_empty() {
             return res;
         }
-        foods = eliminate_allergen_free(foods, &new_foods);
-        res.append(&mut new_foods);
+        foods = eliminate_allergen_free(foods, &allergen_free);
+        res.append(&mut allergen_free);
     }
 }
 
-fn find_allergen_free_foods_one_pass(foods: &[Food]) -> Vec<String> {
+fn find_allergen_free_ingredients_one_pass(foods: &[Food]) -> Vec<String> {
     let allergens = get_allergens(foods);
     let ingredients = get_ingredients(&foods);
     println!("Ingredients: {}, Allergens: {}", ingredients.len(), allergens.len());
-    let mut possible_allergens = HashMap::new();
-    ingredients.iter().for_each(|i| {
-        possible_allergens.insert(i.clone(), allergens.clone());
-    });
+    let mut possible_allergens = ingredients.iter()
+        .map(|i| {
+        (i.clone(), allergens.clone())
+    }).collect::<HashMap<String, _>>();
     for ingredient in &ingredients {
         foods.iter().filter(|f| !f.ingredients.contains(ingredient))
             .for_each(|f| {
@@ -90,27 +95,28 @@ fn find_allergen_free_foods_one_pass(foods: &[Food]) -> Vec<String> {
 }
 
 fn get_allergens(foods: &[Food]) -> HashSet<String> {
-    let mut allergens = HashSet::new();
     // Get a list of all the allergens
-    for food in foods.iter() {
-        food.allergens.iter()
-            .for_each(|a| { allergens.insert(a.clone()); });
-    }
-    allergens
+    foods.iter()
+        .cloned()
+        .map(|f| f.allergens)
+        .flatten()
+        .collect()
 }
 
 fn get_ingredients(foods: &[Food]) -> Vec<String> {
-    let mut ingredients = HashSet::new();
-    for food in foods.iter() {
-        food.ingredients.iter()
-            .for_each(|a| { ingredients.insert(a.clone()); });
-    }
-    ingredients.into_iter().collect()
+    foods.iter()
+        .cloned()
+        .map(|f| f.ingredients)
+        .flatten()
+        .collect::<HashSet<String>>()
+        .into_iter()
+        .collect()
 }
 
-fn identify_allergens_one_pass(foods: &[Food]) -> HashMap<String, String> {
+fn identify_allergens(foods: &[Food]) -> HashMap<String, String> {
     let mut res: HashMap<String, HashSet<String>> = HashMap::new();
     let allergens = get_allergens(foods);
+    println!("{} allergens unidentified.", allergens.len());
     // Figure out which ingredients have the allergen
     // Take an allergen, and scan the food list, finding the ingredient that is in EVERY food with this allergen
     for allergen in allergens.iter() {
@@ -134,15 +140,14 @@ fn identify_allergens_one_pass(foods: &[Food]) -> HashMap<String, String> {
             });
         res.insert(allergen.clone(), ingreds_for_allergen);
     }
-    println!("{} allergens unidentified. {} allergens found", allergens.len(), res.len());
+    println!("{} allergens found so far", res.len());
     remove_duplicates(&mut res);
 
     // Extract the Ingredients from the hashmap
-    res.into_iter().fold(HashMap::new(), |mut result, (allergen, ingredients)| {
+    res.into_iter().map( |(allergen, ingredients)| {
         let item = ingredients.iter().take(1).cloned().collect();
-        result.insert(allergen, item);
-        result
-    })
+        (allergen, item)
+    }).collect()
 }
 
 fn remove_duplicates(allergen_map: &mut HashMap<String, HashSet<String>>) {
