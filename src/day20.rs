@@ -4,37 +4,27 @@ use std::fmt::{Display, Formatter};
 
 pub fn day20a() -> String {
     let (_tiles, edges) = read_tiles();
-    let edge_tiles: Vec<_> = edges
-        .iter()
-        .filter(|(_, tile_ids)| tile_ids.len() == 1)
-        .map(|(_, tile_ids)| tile_ids.iter().next().unwrap())
-        .collect();
+    let mut edge_counts = HashMap::new();
+    for (_edge_hash, tile_ids) in edges {
+        if tile_ids.len() == 1 {
+            edge_counts.entry(tile_ids[0])
+                .and_modify(|c| *c += 1)
+                .or_insert(1usize);
+        }
+    }
 
-    let corner_tiles: HashSet<_> = edge_tiles
-        .iter()
-        .cloned()
-        .filter(|&edge_tile| {
-            edge_tiles
-                .iter()
-                .cloned()
-                .filter(|&tile| tile == edge_tile)
-                .count()
-                == 4 // two times (regular and flipped) per each edge
-        })
-        .cloned()
-        .collect();
-
-    corner_tiles.iter().product::<u64>().to_string()
+    edge_counts.iter()
+        .filter(|(_id, &count)| count == 4)
+        .map(|(&id, _)| id)
+        .product::<u64>()
+        .to_string()
 }
 
 pub fn day20b() -> String {
-    use EdgeIndex::*;
     let (tiles, edges) = read_tiles();
     let pieces = place_image_pieces(&tiles, &edges);
 
     let mut image = assemble_image(pieces);
-
-    image = image.transform(&Left, &Upper, true);
 
     println!("{}", image);
 
@@ -433,14 +423,10 @@ fn place_image_pieces(tiles: &HashMap<TileId, Tile>, edges: &HashMap<EdgeChecksu
                         let mut neighbor_tile = tiles.get(id).unwrap().clone();
 
                         for index in &[Upper, Right, Lower, Left] {
-                            if neighbor_tile.flipped_edges_checksums[*index as usize]
-                                == edge_checksum
-                            {
+                            if neighbor_tile.flipped_edges_checksums[*index as usize] == edge_checksum {
                                 neighbor_tile = neighbor_tile.transform(index, &!edge_index, false);
                                 break;
-                            } else if neighbor_tile.edges_checksums[*index as usize]
-                                == edge_checksum
-                            {
+                            } else if neighbor_tile.edges_checksums[*index as usize] == edge_checksum {
                                 neighbor_tile = neighbor_tile.transform(index, &!edge_index, true);
                                 break;
                             }
@@ -513,17 +499,18 @@ fn count_monsters(image: &mut Image, monster_pixels: &[Position]) -> usize {
         .max()
         .unwrap();
 
+    println!("Image max ({},{}). Monster max ({},{})", max_x, max_y, monster_max_x, monster_max_y);
+
     let mut monsters_count = 0;
 
     for attempt in 0..8 {
-        for y in 0..=max_y - monster_max_y + 1 {
-            'next_pixel: for x in 0..=max_x - monster_max_x + 1 {
+        for y in 0..=max_y - monster_max_y {
+            'next_pixel: for x in 0..=max_x - monster_max_x {
                 let current_position: Position = (x, y).into();
 
                 for monster_position in monster_pixels.iter() {
                     match image.0.get(&(current_position + *monster_position)) {
                         None => {
-                            println!("{}", image);
                             println!("Missing pixel - {:?}", current_position + *monster_position)
                         },
                         Some(false) => continue 'next_pixel,
