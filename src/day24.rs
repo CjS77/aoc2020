@@ -8,7 +8,6 @@ type MyHashSet = FnvHashSet<Position>;
 pub fn day24a() -> String {
     let data = get_moves("assets/day24.txt");
     let set = process_moves(data);
-
     format!("{}", set.len())
 }
 

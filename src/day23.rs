@@ -1,16 +1,21 @@
-use std::collections::LinkedList;
-
 pub fn day23a() -> String {
     let mut cups = Cups::new("685974213");
     for _ in 0..100 {
         cups.turn();
         // println!("{}", cups.to_string())
     }
-    format!("{}", cups.ans())
+    cups.ans()
 }
 
 pub fn day23b() -> String {
-    format!("{}", 1)
+    let mut cups = BigCups::new("685974213");
+    for i in 0..10_000_000 {
+        cups.turn();
+        if i % 1_000 == 0 {
+            print!(".");
+        }
+    }
+    cups.ans()
 }
 
 struct Cups {
@@ -91,24 +96,13 @@ impl BigCups {
         self.current_index = next_current;
     }
 
-    pub fn ans(self) -> usize {
+    pub fn ans(self) -> String {
         let v = self.ring;
         let index = v.iter().enumerate().find(|(_i, &val)| val == 1).unwrap().0;
         let (a, b, c) = (v[index % SIZE], v[(index + 1) % SIZE], v[(index + 2) % SIZE]);
         println!("{} {} {}", a, b, c);
-        b * c
+        (b * c).to_string()
     }
 }
 
-pub fn new_list(s: &str) -> LinkedList<usize> {
-    let mut list = LinkedList::new();
-    for c in s.chars() {
-        let v = c as usize - 48;
-        list.push_back(v);
-    }
-    for v in 10..=SIZE {
-        list.push_back(v)
-    }
-    list
-}
 
