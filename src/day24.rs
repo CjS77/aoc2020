@@ -23,29 +23,18 @@ pub fn day24b() -> String {
 }
 
 fn new_hashset() -> MyHashSet {
-    FnvHashSet::default()
-}
-fn get_moves(f: &str) -> Vec<Vec<Move>> {
-    read_data(f).iter().filter(|&s| !s.is_empty())
-        .map(|s| {
-            let mut this_move = Vec::new();
-            let mut i = 0;
-            let s = s.as_bytes();
-            while i < s.len() {
-                let size = match s[i] as char {
-                    'n' | 's' => 2,
-                    'e' | 'w' => 1,
-                    _ => unreachable!()
-                };
-                let next = slice_to_move(&s[i..i + size]);
-                i += size;
-                this_move.push(next);
-            }
-            this_move
-        }).collect()
+    MyHashSet::default()
 }
 
-fn process_move(moves: &[Move]) -> Position {
+fn get_moves(f: &str) -> Vec<Vec<Move>> {
+    read_data(f)
+        .iter()
+        .filter(|&s| !s.is_empty())
+        .map(str_to_moves)
+        .collect()
+}
+
+fn locate_tile(moves: &[Move]) -> Position {
     moves.iter()
         .fold(Position::default(), |loc, m| {
             loc.offset(m)
@@ -54,8 +43,8 @@ fn process_move(moves: &[Move]) -> Position {
 
 fn process_moves(moves: Vec<Vec<Move>>) -> MyHashSet {
     let mut result = new_hashset();
-    for mov in moves.iter() {
-        let pos = process_move(mov);
+    for these_moves in moves.iter() {
+        let pos = locate_tile(these_moves);
         if !result.remove(&pos) {
             result.insert(pos);
         }
@@ -67,7 +56,6 @@ fn flip_tiles(floor_plan: &MyHashSet) -> MyHashSet {
     let mut result = new_hashset();
     let (min_x, max_x, min_y, max_y) = floor_plan.iter()
         .fold((0,0,0,0), |bounds, pos| {
-            // println!("{:?}", pos);
             (
                 bounds.0.min(pos.x),
                 bounds.1.max(pos.x),
@@ -84,15 +72,12 @@ fn flip_tiles(floor_plan: &MyHashSet) -> MyHashSet {
             let pos = Position { x, y };
             let is_black = floor_plan.contains(&pos);
             let n_neighbours = pos.count_neighbours(&floor_plan);
-            // println!("{:?} ({}) -> {} black neighbours", pos, is_black, n_neighbours);
             if !is_black && n_neighbours == 2 {
                 result.insert(pos);
-                // println!("Flipped to black");
             }
             // A black tile that's NOT flipped stays black and must be put in the new plan
             if is_black && (n_neighbours == 1 || n_neighbours == 2) {
                 result.insert(pos);
-                // println!("Stays black");
             }
         }
     }
@@ -135,22 +120,31 @@ impl Position {
     pub fn count_neighbours(&self, bag: &MyHashSet) -> usize {
         Move::iter().filter(|m| {
             let neighbour = self.offset(m);
-            // println!("{:?} => {:?} - {}", self, neighbour, bag.contains(&neighbour));
             bag.contains(&neighbour)
         }).count()
     }
 
 }
 
-fn slice_to_move(slice: &[u8]) -> Move {
-    let s: String = slice.iter().map(|&v| v as char).collect();
-    match s.as_str() {
-        "e" => Move::East,
-        "w" => Move::West,
-        "ne" => Move::NorthEast,
-        "nw" => Move::NorthWest,
-        "se" => Move::SouthEast,
-        "sw" => Move::SouthWest,
-        _ => unreachable!()
+fn str_to_moves<S: AsRef<str>>(s: S) -> Vec<Move> {
+    let mut result = Vec::new();
+    let mut chars = s.as_ref().chars();
+    while let Some(c) = chars.next() {
+        let next = match c {
+            'n' | 's' => format!("{}{}", c, chars.next().unwrap()),
+            'e' | 'w' => String::from(c),
+            _ => panic!("Invalid input")
+        };
+        let mov = match next.as_str() {
+            "e" => Move::East,
+            "w" => Move::West,
+            "ne" => Move::NorthEast,
+            "nw" => Move::NorthWest,
+            "se" => Move::SouthEast,
+            "sw" => Move::SouthWest,
+            _ => unreachable!()
+        };
+        result.push(mov);
     }
+    result
 }
