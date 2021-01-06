@@ -1,31 +1,71 @@
 use fnv::FnvHashMap;
 use crate::bits::is_set;
-
-pub fn day25a() -> String {
-    let crypto = Crypto::new();
-    println!("k=8, Pa={}", pubkey_slow(8));
-    println!("k=8, Pa={}", crypto.pubkey(8));
-    println!("k=11, Pa={}", pubkey_slow(11));
-    println!("k=11, Pa={}", crypto.pubkey(11));
-
-    let ka = brute_force(Pa, &crypto);
-    let kb = brute_force(Pb, &crypto);
-    println!("ka = {}, Pk = {}", ka, crypto.pubkey(ka));
-    println!("kb = {}, Pk = {}", kb, crypto.pubkey(kb));
-    println!("kb = {}, Pk = {}", kb, pubkey_slow(kb));
-    format!("key = {} / {}", dh(ka, Pb), dh(kb, Pa))
-}
-
-
-pub fn day25b() -> String {
-    format!("{}", 1)
-}
+use std::time;
 
 const Pa: usize = 12090988;
 const Pb: usize = 240583;
 
+pub fn day25a() -> String {
+
+    let mut crypto = None;
+    let t = time_it(|| {
+        crypto.replace(Crypto::new());
+    });
+    println!("Set up crypto table in {} µs", t);
+    let crypto = crypto.unwrap();
+
+    let mut pa=0;
+    let mut pb=0;
+    let mut pc=0;
+    let t = time_it(|| {
+        pa = pubkey_slow(8);
+        pb = pubkey_slow(11);
+        pc = pubkey_slow(18_365_783);
+    });
+    println!("Pa = {}, Pb = {}, Pc = {}, Using pubkey_slow: {} µs", pa, pb, pc, t);
+
+    let t = time_it(|| {
+        pa = crypto.pubkey(8);
+        pb = crypto.pubkey(11);
+        pc = crypto.pubkey(18_365_783);
+    });
+    println!("Pa = {}, Pb = {}, Pc = {}, Using crypto.pubkey: {} µs", pa, pb, pc, t);
+
+    // let ka = brute_force(Pa, &crypto);
+    let mut ka = 0;
+
+    let t = time_it(|| {
+        ka = naiive_crack(Pa, &crypto);
+    });
+    println!("ka = {}, key = {}, Using naive_crack: {} µs", ka, dh(ka, Pb), t);
+
+    let t = time_it(|| {
+        ka = quick_crack(Pa);
+    });
+    println!("ka = {}, key = {}, Using quick_crack: {} µs", ka, dh(ka, Pb), t);
+
+    dh(ka, Pb).to_string()
+}
+
+fn time_it<F: FnOnce()>(f: F) -> u64 {
+    let now = time::Instant::now();
+    f();
+    now.elapsed().as_micros() as u64
+}
+
 const P: usize = 20201227;
 const G: usize = 7;
+
+fn quick_crack(pubkey: usize) -> usize {
+    let mut k = 1;
+    let mut pk = G;
+    while pk != pubkey {
+        k += 1;
+        pk = G*pk % P;
+    }
+    k
+}
+
 
 pub struct Crypto {
     table: FnvHashMap<usize, usize>
@@ -43,7 +83,7 @@ impl Crypto {
             k *= 2;
             g = pk;
         }
-        println!("{:?}", table);
+        // println!("{:?}", table);
         Self { table }
     }
 
@@ -78,7 +118,7 @@ fn dh(k: usize, pk: usize) -> usize {
     scalar_mult(k, pk)
 }
 
-fn brute_force(pk: usize, c: &Crypto) -> usize {
+fn naiive_crack(pk: usize, c: &Crypto) -> usize {
     for k in 1..P {
         if c.pubkey(k) == pk { return k; }
     }
